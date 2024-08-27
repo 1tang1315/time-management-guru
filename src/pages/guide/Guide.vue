@@ -31,6 +31,7 @@
 <script setup>
 import Header from '@/components/Header.vue';
 import { ref, onMounted, onUpdated, reactive } from 'vue';
+import { addMarkdown, getMarkdown, updateMarkdown } from '@/db/markdowns.js';
 
 const dayText = ref('');
 const workingDayTemplate = ref(`
@@ -156,59 +157,69 @@ const dayTextToolbar = ref({
 });
 
 const template = ref('');
-let textContent = '';
-onMounted(() => {
-  const saveWorkingDayTemplate = localStorage.getItem('workingDayTemplate');
+let textContent = '工作日模板';
+onMounted(async () => {
+  const saveWorkingDayTemplate = await getMarkdown('workingDayTemplate');
   if (saveWorkingDayTemplate) {
-    workingDayTemplate.value = saveWorkingDayTemplate;
+    workingDayTemplate.value = saveWorkingDayTemplate.markdown;
   }
   template.value = workingDayTemplate.value;
 
-  const saveRestingDayTemplate = localStorage.getItem('restingDayTemplate');
+  const saveRestingDayTemplate = await getMarkdown('restingDayTemplate');
   if (saveRestingDayTemplate) {
-    restingDayTemplate.value = saveRestingDayTemplate;
+    restingDayTemplate.value = saveRestingDayTemplate.markdown;
   }
 
-  const saveMermaidTemplate = localStorage.getItem('mermaidTemplate');
+  const saveMermaidTemplate = await getMarkdown('mermaidTemplate');
   if (saveMermaidTemplate) {
-    mermaidTemplate.value = saveMermaidTemplate;
+    mermaidTemplate.value = saveMermaidTemplate.markdown;
   }
 });
-onUpdated(() => {
-  const saveWorkingDayTemplate = localStorage.getItem('workingDayTemplate');
+onUpdated(async () => {
+  const saveWorkingDayTemplate = await getMarkdown('workingDayTemplate');
   if (saveWorkingDayTemplate) {
-    workingDayTemplate.value = saveWorkingDayTemplate;
+    workingDayTemplate.value = saveWorkingDayTemplate.markdown;
   }
 
-  const saveRestingDayTemplate = localStorage.getItem('restingDayTemplate');
+  const saveRestingDayTemplate = await getMarkdown('restingDayTemplate');
   if (saveRestingDayTemplate) {
-    restingDayTemplate.value = saveRestingDayTemplate;
+    restingDayTemplate.value = saveRestingDayTemplate.markdown;
   }
 
-  const saveMermaidTemplate = localStorage.getItem('mermaidTemplate');
+  const saveMermaidTemplate = await getMarkdown('mermaidTemplate');
   if (saveMermaidTemplate) {
-    mermaidTemplate.value = saveMermaidTemplate;
+    mermaidTemplate.value = saveMermaidTemplate.markdown;
   }
 });
 
-const saveDayTextHandle = (text) => {
-  localStorage.setItem('dayText', text);
-  alert('保存成功!!!')
+const saveDayTextHandle = async (text) => {
+  const dayTextMarkdown = await getMarkdown('dayText');
+  if (dayTextMarkdown) { 
+    dayTextMarkdown['markdown'] = text;
+    updateMarkdown(dayTextMarkdown);
+  } else {
+    const dayTextMarkdown = {
+      key: 'dayText',
+      markdown: text
+    }
+    addMarkdown(dayTextMarkdown);
+  }
+  alert('保存成功!!!');
 }
-onMounted(() => {
-  const savedText = localStorage.getItem('dayText');
+onMounted(async () => {
+  const savedText = await getMarkdown('dayText');
   if (savedText) {
-    dayText.value = savedText;
+    dayText.value = savedText.markdown;
   }
 });
 
 const weekDays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
 const weekGuide = reactive(['### 星期一', '### 星期二', '### 星期三', '### 星期四', '### 星期五', '### 星期六', '### 星期日']);
 const selectedIndex = ref(0);
-onMounted(() => {
-  const storedWeekGuide = localStorage.getItem('weekGuide');
+onMounted(async () => {
+  const storedWeekGuide = await getMarkdown('weekGuide');
   if (storedWeekGuide) {
-    const parsedWeekGuide = JSON.parse(storedWeekGuide);
+    const parsedWeekGuide = JSON.parse(storedWeekGuide.markdown);
     weekGuide.splice(0, weekGuide.length, ...parsedWeekGuide);
   }
 });
@@ -219,9 +230,20 @@ const weekGuideCilckHandle = (e) => {
     selectedIndex.value = index;
   }
 }
-const saveWeekGuideHandle = (text) => {
+const saveWeekGuideHandle = async (text) => {
   weekGuide[selectedIndex.value] = text;
-  localStorage.setItem('weekGuide', JSON.stringify(weekGuide));
+
+  const storedWeekGuide = await getMarkdown('weekGuide');
+  if (storedWeekGuide) {
+    storedWeekGuide.markdown = JSON.stringify(weekGuide);
+    await updateMarkdown(storedWeekGuide);
+  } else {
+    const newWeekGuide = {
+      key: 'weekGuide',
+      markdown: JSON.stringify(weekGuide),
+    };
+    await addMarkdown(newWeekGuide);
+  }
   alert('保存成功')
 }
 
@@ -242,10 +264,10 @@ A3[3.组件拆分 代码优化]
 A4[4. 打包上线]
 \`\`\`
 `);
-onMounted(() => {
-  const savedText = localStorage.getItem('flowDiagram');
+onMounted(async () => {
+  const savedText = await getMarkdown('flowDiagram');
   if (savedText) {
-    flowDiagram.value = savedText;
+    flowDiagram.value = savedText.markdown;
   }
 });
 const flowDiagramToolbar = ref({
@@ -309,8 +331,18 @@ const flowDiagramToolbar = ref({
     ]
   }
 });
-const saveFlowDiagramHandle = (text) => {
-  localStorage.setItem('flowDiagram', text);
+const saveFlowDiagramHandle = async (text) => {
+  const flowDiagram = await getMarkdown('flowDiagram');
+  if (flowDiagram) {
+    flowDiagram['markdown'] = text;
+    updateMarkdown(flowDiagram);
+  } else {
+    const flowDiagram = {
+      key: 'flowDiagram',
+      markdown: text
+    }
+    addMarkdown(flowDiagram);
+  }
   alert('保存成功!!!')
 }
 
@@ -330,15 +362,33 @@ const templateCilckHandle = (e) => {
     }
   }
 }
-const saveTemplateHandle = (text) => { 
+
+const saveTemplateHandle = async (text) => {
+  let key = '';
+
   if (textContent == '工作日模板') {
-    localStorage.setItem('workingDayTemplate', text);
+    key = 'workingDayTemplate';
   } else if (textContent == '休息日模板') {
-    localStorage.setItem('restingDayTemplate', text);
+    key = 'restingDayTemplate';
   } else if (textContent == '流程图模板') {
-    localStorage.setItem('mermaidTemplate', text);
+    key = 'mermaidTemplate';
   }
-  alert('修改成功!!!') 
+
+  if (key) {
+    const existingTemplate = await getMarkdown(key);
+    if (existingTemplate) {
+      existingTemplate.markdown = text;
+      await updateMarkdown(existingTemplate);
+    } else {
+      const newTemplate = {
+        key: key,
+        markdown: text,
+      };
+      await addMarkdown(newTemplate);
+    }
+
+    alert('修改成功!!!');
+  }
 }
 </script>
 

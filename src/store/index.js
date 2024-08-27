@@ -4,6 +4,9 @@ import { defineStore } from 'pinia'
 export const initStore = defineStore('initStoreId', {
   state: () => ({
     NavActiveIndex: sessionStorage.getItem('NavActiveIndex') ? parseInt(sessionStorage.getItem('NavActiveIndex')) : 0,
+    isDarkTheme: localStorage.getItem('isDarkTheme') !== null
+      ? localStorage.getItem('isDarkTheme') === 'true'
+      : true,
   }),
   getters: { // getters 类似计算属性 返回新的属性
     // doubleCount: (state) => state.count * 2,
@@ -13,6 +16,10 @@ export const initStore = defineStore('initStoreId', {
       this.NavActiveIndex = value;
       sessionStorage.setItem('NavActiveIndex', value);
     },
+    ChangeIsDarkTheme() {
+      this.isDarkTheme = !this.isDarkTheme;
+      localStorage.setItem('isDarkTheme', this.isDarkTheme);
+    }
   }
 })
 

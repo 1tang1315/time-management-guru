@@ -9,8 +9,23 @@ export const saveToMarkdowns = async (data) => {
   await store.add(data);
 
   await tx.done;
-  console.log('数据已保存到IndexedDB');
 }
+
+export const addMarkdown = async (markdown) => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await store.add(markdown);
+    await tx.done;
+  } catch (e) {
+    if (e.name === 'ConstraintError') {
+      throw new Error('该markdown已存在');
+    } else {
+      throw e;
+    }
+  }
+};
 
 export const getMarkdown = async (key) => {
   const db = await initDB();

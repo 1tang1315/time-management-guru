@@ -1,0 +1,139 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 4659796 */
+  src: url('iconfont.woff2?t=1724675875673') format('woff2'),
+       url('iconfont.woff?t=1724675875673') format('woff'),
+       url('iconfont.ttf?t=1724675875673') format('truetype');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-shoucang8:before {
+  content: "\e626";
+}
+
+.icon-shoucang:before {
+  content: "\e60e";
+}
+
+.icon-tianhezuo:before {
+  content: "\e601";
+}
+
+.icon-shuangzizuo:before {
+  content: "\e602";
+}
+
+.icon-shuipingzuo:before {
+  content: "\e603";
+}
+
+.icon-shuangyuzuo:before {
+  content: "\e604";
+}
+
+.icon-mojiezuo:before {
+  content: "\e605";
+}
+
+.icon-chunvzuo:before {
+  content: "\e606";
+}
+
+.icon-shizizuo:before {
+  content: "\e607";
+}
+
+.icon-juxiezuo:before {
+  content: "\e608";
+}
+
+.icon-sheshouzuo:before {
+  content: "\e609";
+}
+
+.icon-tianchengzuo:before {
+  content: "\e60a";
+}
+
+.icon-jinniuzuo:before {
+  content: "\e60c";
+}
+
+.icon-muyangzuo:before {
+  content: "\e60d";
+}
+
+.icon-pifuzhuti-xianxing:before {
+  content: "\e91e";
+}
+
+.icon-xiazai:before {
+  content: "\e612";
+}
+
+.icon-shangchuan:before {
+  content: "\e63b";
+}
+
+.icon-tongbu1:before {
+  content: "\e63c";
+}
+
+.icon-shengri:before {
+  content: "\e7a6";
+}
+
+.icon-zhexiantu:before {
+  content: "\e600";
+}
+
+.icon-xiangqing:before {
+  content: "\e62e";
+}
+
+.icon-shouye:before {
+  content: "\e639";
+}
+
+.icon-chart:before {
+  content: "\e61d";
+}
+
+.icon-taiyang:before {
+  content: "\e60f";
+}
+
+.icon-tubiao-zhexiantu:before {
+  content: "\eb96";
+}
+
+.icon-24gf-chartBarUpward:before {
+  content: "\e848";
+}
+
+.icon-zhinan:before {
+  content: "\e715";
+}
+
+.icon-bingtutubiao:before {
+  content: "\e98c";
+}
+
+.icon-tubiaozhutu:before {
+  content: "\e997";
+}
+
+.icon-wode:before {
+  content: "\e60b";
+}
+
+.icon-moon-fill:before {
+  content: "\e6c0";
+}
+

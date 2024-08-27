@@ -3,7 +3,8 @@
     <div class="left" @click="refreshPage">
       <h3>专注•记录</h3>
     </div>
-    <h1 class="title">时间管理大师, 记录您的人生轨迹</h1>
+    <span class="motto-show" v-if="!isEditting" @click="handleIsEditting">{{ motto }}</span>
+    <input class="motto-edit" v-if="isEditting" ref="mottoEditRef" v-model="motto" @keyup.enter="changeMotto" @blur="changeMotto"/>
     <div class="right">
       <div class="nav" @click="handleNavChange($event)">
         <li v-for="(item, index) in ['首页', '详情', '指南', '我的']" :key="item" :nav-index='index'
@@ -14,23 +15,31 @@
         {{ currentTime }}
         <i>{{ currentDate }}</i>
       </div>
+      <div class="theme">
+        <button @click="changeTheme">
+         <transition :name="isDarkTheme ? 'to-right' : 'to-left'">
+          <span :key="isDarkTheme" :class="['iconfont', isDarkTheme ? 'icon-moon-fill' : 'icon-taiyang']"></span>
+        </transition>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, onUpdated } from 'vue';
 import { useRouter } from 'vue-router';
-import { initStore } from '@/store/index.js'
-import { storeToRefs } from 'pinia'
+import { initStore } from '@/store/index.js';
+import { storeToRefs } from 'pinia';
 import moment from 'moment';
 
-const store = initStore()
+import { getMeByKey, updateMe } from '@/db/me.js';
+
+const store = initStore();
 // 解构赋值 需要引入storeToRefs 才不会丢失响应式
-const { NavActiveIndex } = storeToRefs(store)
+const { NavActiveIndex, isDarkTheme } = storeToRefs(store)
 
 const router = useRouter();
-
 
 const currentTime = ref(moment().format('HH:mm:ss'));
 const currentDate = ref(moment().format('YYYY-M-D'));
@@ -67,6 +76,54 @@ const handleNavChange = (e) => {
     }
   }
 }
+
+onMounted(() => {
+  document.documentElement.classList.toggle('dark-theme', isDarkTheme.value);
+  document.documentElement.classList.toggle('light-theme', !isDarkTheme.value);
+})
+const changeTheme = () => {
+  store.ChangeIsDarkTheme();
+  document.documentElement.classList.toggle('dark-theme', isDarkTheme.value);
+  document.documentElement.classList.toggle('light-theme', !isDarkTheme.value);
+}
+
+// 座右铭
+const isEditting = ref(false);
+const mottoEditRef = ref(null);
+const motto = ref('');
+
+onMounted(async () => {
+  const mottoObj = await getMeByKey('motto');
+  if (mottoObj) {
+    motto.value = mottoObj.value;
+  } else {
+    motto.value = '人生时间管理大师';
+  }
+})
+onUpdated(async () => {
+  const mottoObj = await getMeByKey('motto');
+  if (mottoObj) {
+    motto.value = mottoObj.value;
+  } else {
+    motto.value = '人生时间管理大师';
+  }
+})
+const handleIsEditting = () => {
+  isEditting.value = !isEditting.value;
+  if (isEditting.value) {
+    nextTick(() => {
+      mottoEditRef.value.focus();
+    })
+  }
+}
+const changeMotto = async () => {
+  isEditting.value = false;
+  const mottoObj = {
+    key: "motto",
+    value: motto.value
+  }
+  updateMe(mottoObj);
+}
 </script>
 
 <style lang="scss" scoped>
@@ -74,13 +131,34 @@ const handleNavChange = (e) => {
   background-color: #13a4cd;
 }
 
+.to-left-enter-active,
+.to-left-leave-active {
+  transition: all 0.3s ease;
+}
+
+.to-left-enter,
+.to-left-leave-to {
+  transform: translateX(-100%);
+}
+
+.to-right-enter-active,
+.to-right-leave-active {
+  transition: all 0.3s ease;
+}
+
+.to-right-enter,
+.to-right-leave-to {
+  transform: translateX(100%);
+}
+
 .header {
   width: 100%;
   height: 60px;
   margin-bottom: 10px;
-  background-color: #191919;
+  border-bottom: 1px solid #13a4cd;
+  background-color: var(--background-color);
   display: flex;
-  justify-content: space-around;
+  justify-content: space-evenly;
   align-items: center;
 
   .title {
@@ -90,9 +168,35 @@ const handleNavChange = (e) => {
     color: #13a4cd;
   }
 
+  .motto-show {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    width: auto;
+    height: auto;
+    max-width: 500px;
+    max-height: 60px;
+    text-align: left;
+    text-indent: 2em;
+    word-wrap: break-word;
+    font-size: calc(20px - 0.1vw);
+    font-weight: 600;
+    color: #13a4cd;
+    outline: none;
+    border: none;
+    overflow-y: auto; 
+    background-color: transparent;
+  }
+  .motto-edit {
+    width: 500px;
+    padding: 5px;
+    font-size: 18px;
+    outline: none;
+  }
+
   .left {
     width: 100px;
     height: 50px;
+
     h3 {
       margin: 0;
       line-height: 55px;
@@ -100,6 +204,7 @@ const handleNavChange = (e) => {
       cursor: pointer;
     }
   }
+
   .right {
     display: flex;
 
@@ -136,5 +241,37 @@ const handleNavChange = (e) => {
       }
     }
   }
-}
-</style>
+
+  .theme {
+    position: absolute;
+    right: 60px;
+    width: 50px;
+    height: 60px;
+    line-height: 60px;
+    text-align: center;
+
+    button {
+      position: relative;
+      width: 100%;
+      height: 22px;
+      padding: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: transparent;
+      cursor: pointer;
+
+      .iconfont {
+        position: absolute;
+        top: 0;
+        font-size: 20px;
+        color: var(--primary-color);
+      }
+      .icon-moon-fill {
+        right: 2px;
+      }
+      .icon-taiyang {
+        left: 2px;
+      }
+    }
+  }
+}</style>

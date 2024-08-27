@@ -15,12 +15,25 @@ export default defineConfig({
     }
   },
   server: {
+    host: '0.0.0.0',
     proxy: {
       // 代理目标网址
       '/boardmix': {
         target: 'https://boardmix.cn',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/boardmix/, ''), // 去掉路径前缀
+        secure: false,
+      },
+      '/constellationApi': {
+        target: 'http://web.juhe.cn',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/constellationApi/, ''), // 去掉路径前缀
+        secure: false,
+      },
+      '/carletApi': {
+        target: 'https://apis.juhe.cn',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/carletApi/, ''), // 去掉路径前缀
         secure: false,
       },
     },

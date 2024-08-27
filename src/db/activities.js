@@ -28,7 +28,6 @@ export const getAllActivities = async () => {
 };
 
 export const getActivityByKey = async (key) => {
-  console.log(key);
   const db = await initDB();
   return await db.get(STORE_NAME, key);
 };

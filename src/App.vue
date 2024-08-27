@@ -27,6 +27,20 @@ ul {
   margin: 0;
 }
 
+html {
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+body {
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+li {
+  list-style: none;
+}
+
 ::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -45,16 +59,15 @@ ul {
 }
 
 
-html {
-  color: #fff;
-  background-color: black;
-}
-body {
-  width: 100vw;
-  overflow-x: hidden;
-}
-
-li {
-  list-style: none;
+@font-face {
+  font-family: 'icomoon';
+  src: url('@/assets/css/fonts/icomoon.eot?hawbqe');
+  src: url('@/assets/css/fonts/icomoon.eot?hawbqe#iefix') format('embedded-opentype'),
+    url('@/assets/css/fonts/icomoon.ttf?hawbqe') format('truetype'),
+    url('@/assets/css/fonts/icomoon.woff?hawbqe') format('woff'),
+    url('@/assets/css/fonts/icomoon.svg?hawbqe#icomoon') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
 }
 </style>

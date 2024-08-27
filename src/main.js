@@ -1,3 +1,6 @@
+import '@/assets/css/theme.css';
+import '@/assets/fonts/iconfont.css';
+import '@/assets/fonts/iconfont.js';
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';

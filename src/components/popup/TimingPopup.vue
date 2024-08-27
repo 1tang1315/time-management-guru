@@ -1,6 +1,10 @@
 <template>
   <div class="timingPopup">
     <h4 class="title">{{ currentTodo.text }}</h4>
+    <h4 class="carlet">
+      <span :class="['iconfont', isCollect ? 'icon-shoucang' : 'icon-shoucang8']" @click="isCollectHandle"></span>
+      {{ carlet }}
+    </h4>
     <div class="time">
       <h2>{{ minutes.toString().padStart(2, '0') }} : {{ seconds.toString().padStart(2, '0') }}</h2>
     </div>
@@ -36,7 +40,7 @@
 
 <script setup>
 import moment from 'moment';
-import { toRaw, ref, onUnmounted } from 'vue';
+import { toRaw, ref, onUnmounted, onMounted } from 'vue';
 import { todoData } from '@/hooks/todoData';
 const { currentTodo } = todoData();
 const { updateTimingPopupHandle, updateTodoHandle, updateTodoActivityHandle } = todoData();
@@ -109,6 +113,62 @@ const theEndCancel = () => {
   continueTimer();
   ChangeIsRunningHandle(true);
 }
+
+// 每日语录
+const isCollect = ref(false);
+const carlet = ref('');
+async function getCarlet() {
+  const apiKey = 'b393eb0dc93d9c2b990d8aadd23137f9';
+  const url = `http://localhost:5173/carletApi/fapig/soup/query?key=${apiKey}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    if (!response.ok) {
+      throw new Error('请求失败');
+    }
+    const result = await response.json();
+    console.log(result);
+    if (result.reason == "success") {
+      carlet.value = result.result.text;
+      if (carlet.value) {
+        sessionStorage.setItem('carlet', carlet.value);
+      }
+    }
+  } catch (error) {
+    console.error('请求错误:', error);
+  }
+}
+onMounted(() => {
+  isCollect.value = sessionStorage.getItem('isCollect');
+  carlet.value = sessionStorage.getItem('carlet');
+  if (!carlet.value) {
+    getCarlet();
+  }
+})
+const isCollectHandle = () => {
+  isCollect.value = !isCollect.value;
+  sessionStorage.setItem('isCollect', isCollect.value);
+  if (isCollect.value && carlet.value) {
+    console.log(mottos.value)
+    const result = mottos.value.filter(item => item == carlet.value)[0];
+    if (result) {
+      alert('该语录已收藏');
+      return;
+    }
+    mottos.value.push(carlet.value);
+    const mottosObj = {
+      key: 'mottos',
+      value: toRaw(mottos.value)
+    }
+    updateMe(mottosObj);
+  }
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -207,5 +267,13 @@ const theEndCancel = () => {
       cursor: pointer;
     }
   }
+}
+
+.carlet {
+  width: 95%;
+  margin: auto;
+  padding: 10px;
+  text-align: left;
+  text-indent: 2em;
 }
 </style>

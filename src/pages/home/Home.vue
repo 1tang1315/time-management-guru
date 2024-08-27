@@ -356,7 +356,7 @@ onUpdated(async () => {
   .center {
     width: 33%;
     height: 450px;
-    background-color: black;
+    background-color: var(--background-color);
 
     .subtitle {
       display: flex;
