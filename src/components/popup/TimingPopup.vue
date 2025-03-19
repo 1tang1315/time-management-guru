@@ -1,6 +1,6 @@
 <template>
   <div class="timingPopup">
-    <h4 class="title">{{ currentTodo.text }}</h4>
+    <h4 class="title">{{ currentTodo.name }}</h4>
     <h4 class="carlet">
       <span :class="['iconfont', isCollect ? 'icon-shoucang' : 'icon-shoucang8']" @click="isCollectHandle"></span>
       {{ carlet }}
@@ -20,13 +20,7 @@
       <h4 class="title">确认结束专注?</h4>
       <div class="input">
         <div class="experience">
-          <span>心得</span>
-          <textarea v-model="experience"></textarea>
-        </div>
-
-        <div class="status">
-          <span>状态</span>
-          <textarea v-model="status"></textarea>
+          <textarea v-model="experience" placeholder="请输入心得体会..."></textarea>
         </div>
       </div>
 
@@ -43,16 +37,22 @@ import moment from 'moment';
 import { toRaw, ref, onUnmounted, onMounted } from 'vue';
 import { todoData } from '@/hooks/todoData';
 const { currentTodo } = todoData();
-const { updateTimingPopupHandle, updateTodoHandle, updateTodoActivityHandle } = todoData();
+const { updateTimingPopupHandle } = todoData();
 
 import { timerWorkerData } from '@/hooks/timeWorkerData.js';
 const { seconds, minutes, isRunning } = timerWorkerData();
 const { ChangeIsRunningHandle, stopTimer, resetTimer, continueTimer, terminateWorkerHandle } = timerWorkerData();
 
-const endDate = ref('');
+import { Activity} from "@/db/model/Activity.js";
+import { TodoController } from "@/db/controller/TodoController.js";
+import { ActivityController } from "@/db/controller/ActivityController.js";
+
+const todoController = new TodoController();
+const activityController = new ActivityController();
+
+const endTime = ref('');
 const isTheEndPopup = ref(false);
-const experience = ref('无');
-const status = ref('已完成');
+const experience = ref('');
 
 onUnmounted(() => {
   terminateWorkerHandle();
@@ -74,40 +74,40 @@ const handleEnd = async () => {
     alert('小于一分钟, 不做记录');
     updateTimingPopupHandle(false);
     resetTimer();
-    currentTodo.value.isUnderway = false;
-    await updateTodoHandle(toRaw(currentTodo.value));
+    currentTodo.value.isTiming = false;
+    await todoController.update(toRaw(currentTodo.value));
 
     terminateWorkerHandle();
     return;
   }
-  endDate.value = moment().format('YYYY-MM-DD HH:mm');
+  
+  endTime.value = moment().format('YYYY-MM-DD HH:mm');
   isTheEndPopup.value = true;
 }
 
 const theEndConfirm = async () => {
   updateTimingPopupHandle(false);
   isTheEndPopup.value = false;
-  const activityObject = {
-    text: currentTodo.value.text,
-    date: `${currentTodo.value.beginDate} 至 ${endDate.value}`,
+  
+  const activity = new Activity({
+    todoId: currentTodo.value.id,
+    todoName: currentTodo.value.name,
+    beginTime: currentTodo.value.beginTime,
+    endTime: endTime.value,
     duration: minutes.value.toString(),
-    content: {
-      experience: experience.value, // 心得
-      progress: '100%', // 完成度
-      status: status.value // 默认已完成 后续可以扩展情绪等其他状态
-    }
-  };
-
-  currentTodo.value.activities.push(activityObject);
-  currentTodo.value.isUnderway = false;
-  await updateTodoHandle(toRaw(currentTodo.value));
+    experience: experience.value || '无'
+  });
+  
+  currentTodo.value.isTiming = false;
+  await todoController.update(toRaw(currentTodo.value));
 
   // 将该专注添如activities数据库
-  await updateTodoActivityHandle(activityObject)
+  await activityController.update(activity);
 
   resetTimer();
   terminateWorkerHandle();
 }
+
 const theEndCancel = () => {
   isTheEndPopup.value = false;
   continueTimer();
@@ -119,7 +119,7 @@ const isCollect = ref(false);
 const carlet = ref('');
 async function getCarlet() {
   const apiKey = 'b393eb0dc93d9c2b990d8aadd23137f9';
-  const url = `http://localhost:5173/carletApi/fapig/soup/query?key=${apiKey}`;
+  const url = `/carletApi/fapig/soup/query?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
@@ -131,9 +131,9 @@ async function getCarlet() {
     if (!response.ok) {
       throw new Error('请求失败');
     }
+    
     const result = await response.json();
-    console.log(result);
-    if (result.reason == "success") {
+    if (result.reason === "success") {
       carlet.value = result.result.text;
       if (carlet.value) {
         sessionStorage.setItem('carlet', carlet.value);
@@ -143,19 +143,21 @@ async function getCarlet() {
     console.error('请求错误:', error);
   }
 }
+
 onMounted(() => {
   isCollect.value = sessionStorage.getItem('isCollect');
   carlet.value = sessionStorage.getItem('carlet');
   if (!carlet.value) {
     getCarlet();
   }
-})
+});
+
 const isCollectHandle = () => {
   isCollect.value = !isCollect.value;
   sessionStorage.setItem('isCollect', isCollect.value);
   if (isCollect.value && carlet.value) {
     console.log(mottos.value)
-    const result = mottos.value.filter(item => item == carlet.value)[0];
+    const result = mottos.value.filter(item => item === carlet.value)[0];
     if (result) {
       alert('该语录已收藏');
       return;
@@ -168,7 +170,6 @@ const isCollectHandle = () => {
     updateMe(mottosObj);
   }
 }
-
 </script>
 
 <style lang="scss" scoped>
@@ -240,8 +241,7 @@ const isCollectHandle = () => {
     flex-direction: row;
     justify-content: center;
 
-    .experience,
-    .status {
+    .experience {
       display: flex;
       flex-direction: column;
       margin: 0 10px;
@@ -249,10 +249,13 @@ const isCollectHandle = () => {
     }
 
     textarea {
-      width: 100px;
-      height: 100px;
+      width: 250px;
+      height: 150px;
+      line-height: 18px;
       margin: 0;
+      padding: 8px;
       border: none;
+      border-radius: 10px;
       outline: none;
     }
   }

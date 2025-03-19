@@ -1,12 +1,39 @@
-<script setup>
-
-</script>
-
 <template>
   <router-view></router-view>
 </template>
 
-<style>
+<script setup>
+import { onMounted } from 'vue';
+import { initStore } from '@/store/index.js';
+import { User } from "@/db/model/User.js";
+import { UserController } from "@/db/controller/UserController.js";
+
+const userController = new UserController();
+
+const store = initStore();
+
+// 创建用户
+onMounted(async () => {
+  let user = await userController.getById(1);
+  if(!user) {
+    await userController.add(new User({
+      username: 'admin',
+      password: '123456',
+      nickname: '唐流雨',
+      motto: []
+    }));
+    user = await userController.getById(1);
+  }
+  store.setUser(user);
+});
+
+// window.addEventListener("beforeunload", (event) => {
+//   event.preventDefault();
+//   event.returnValue = '';
+// });
+</script>
+
+<style lang="scss">
 .overlay {
   position: fixed;
   top: 0;
@@ -30,6 +57,9 @@ ul {
 html {
   color: var(--text-color);
   background-color: var(--background-color);
+  transition:
+    background-color 0.5s ease,
+    color 0.3s ease;
 }
 
 body {
@@ -56,18 +86,5 @@ li {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
-}
-
-
-@font-face {
-  font-family: 'icomoon';
-  src: url('@/assets/css/fonts/icomoon.eot?hawbqe');
-  src: url('@/assets/css/fonts/icomoon.eot?hawbqe#iefix') format('embedded-opentype'),
-    url('@/assets/css/fonts/icomoon.ttf?hawbqe') format('truetype'),
-    url('@/assets/css/fonts/icomoon.woff?hawbqe') format('woff'),
-    url('@/assets/css/fonts/icomoon.svg?hawbqe#icomoon') format('svg');
-  font-weight: normal;
-  font-style: normal;
-  font-display: block;
 }
 </style>

@@ -1,73 +1,65 @@
 <template>
   <div class="addCollectionTodoPopup">
     <h4 class="title">{{ currentCollection.name }}</h4>
-    <input type="text" v-model="collectionTodoText" placeholder="请输入任务项名称" @keyup.enter="addCollectionHandlerTodoInput">
+    <input type="text" v-model="collectionTodoName" placeholder="请输入任务项名称"
+           @keyup.enter="addCollectionHandlerTodoInput">
     <button class="cancle" @click="addCollectionHandlerTodoCancel">X</button>
   </div>
 </template>
 
 <script setup>
-import { ref, toRaw, inject } from 'vue';
-
+import { ref, inject, onMounted } from 'vue';
 import { collectionData } from '@/hooks/collectionData.js'
-const { currentCollection, updateCollectionTodoPopupHandle, updateCollectionHandle, getCollectionHandle } = collectionData();
 
-import { todoData } from '@/hooks/todoData';
-const { getTodoHandle, addTodoHandle, updateTodoHandle } = todoData();
+const {
+  updateCollectionTodoPopupHandle,
+} = collectionData();
 
-const collectionTodoText = ref('');
+const collectionTodoName = ref('');
 const updateCollections = inject('updateCollections');
 
+import { TodoController } from "@/db/controller/TodoController.js";
+import { Todo } from "@/db/model/Todo.js";
+
+const todoController = new TodoController();
+
+const { currentCollection } = defineProps(['currentCollection']);
+
 const addCollectionHandlerTodoInput = async () => {
-  const text = collectionTodoText.value.trim();
-  if (!text) {
+  const name = collectionTodoName.value.trim();
+  
+  if(!name) {
     alert("输入不能为空");
     return;
   }
-
-  // 检查是否已经存在相同的 todo
-  const isDuplicate = currentCollection.value.todos.some(t => t.text == text);
-  if (isDuplicate) {
+  
+  let todo = await todoController.getTodoByTodoName(name);
+  
+  if(todo?.collectionId === currentCollection.id) {
     alert('该todo项已经存在于当前合集。');
     return;
   }
-
-  let todo = await getTodoHandle(text);
-  if (todo) {
-    if (window.confirm('当前todo项已存在, 是否移动到该合集?')) {
-      if (todo.collection) {
-        // 在合集内, 移出原合集
-        const oldCollection = await getCollectionHandle(todo.collection);
-        const updatedCollection = {
-          ...oldCollection,
-          todos: oldCollection.todos.filter(t => t.text !== todo.text)
-        };
-        await updateCollectionHandle(updatedCollection);
-      }
-      // 不在合集 在单项
-      todo.collection = currentCollection.value.name;
-      await updateTodoHandle(todo);
-    } else {
-      updateCollectionTodoPopupHandle(false);
-      collectionTodoText.value = '';
-      return;
-    }
-  } else {
-    todo = {
-      text,
-      completed: false,
-      collection: currentCollection.value.name,
-      activities: []
-    }
-    await addTodoHandle(todo);
+  
+  if(todo && window.confirm('当前todo项已存在, 是否移动到该合集?')) {
+    todo.collectionId = currentCollection.id;
+    await todoController.update(todo);
   }
-  currentCollection.value.todos.push(todo);
-  await updateCollectionHandle(toRaw(currentCollection.value));
-  updateCollections();
-  collectionTodoText.value = '';
+  
+  if(!todo) {
+    todo = new Todo({
+      name,
+      collectionId: currentCollection.id
+    });
+    
+    await todoController.add(todo);
+  }
+  
+  collectionTodoName.value = '';
   alert("操作成功!");
   updateCollectionTodoPopupHandle(false);
+  await updateCollections();
 }
+
 const addCollectionHandlerTodoCancel = () => {
   updateCollectionTodoPopupHandle(false);
 }
@@ -80,11 +72,11 @@ const addCollectionHandlerTodoCancel = () => {
   width: 400px;
   height: 150px;
   background-color: #007acc;
-
+  
   .title {
     text-align: center;
   }
-
+  
   input {
     width: 350px;
     height: 30px;
@@ -95,7 +87,7 @@ const addCollectionHandlerTodoCancel = () => {
     border: none;
     border-radius: 5px;
   }
-
+  
   .cancle {
     position: absolute;
     top: -10px;

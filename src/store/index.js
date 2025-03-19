@@ -1,4 +1,6 @@
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
+import { UserController } from "@/db/controller/UserController.js";
+
 
 // storeId 浏览器插件 与之关联 必填
 export const initStore = defineStore('initStoreId', {
@@ -7,6 +9,7 @@ export const initStore = defineStore('initStoreId', {
     isDarkTheme: localStorage.getItem('isDarkTheme') !== null
       ? localStorage.getItem('isDarkTheme') === 'true'
       : true,
+    user: {}
   }),
   getters: { // getters 类似计算属性 返回新的属性
     // doubleCount: (state) => state.count * 2,
@@ -19,9 +22,12 @@ export const initStore = defineStore('initStoreId', {
     ChangeIsDarkTheme() {
       this.isDarkTheme = !this.isDarkTheme;
       localStorage.setItem('isDarkTheme', this.isDarkTheme);
-    }
+    },
+    setUser(user) {
+      this.user = user;
+    },
   }
-})
+});
 
 export const collectionStore = defineStore('collectionStoreId', {
   state: () => ({
@@ -36,7 +42,7 @@ export const collectionStore = defineStore('collectionStoreId', {
       this.currentCollection = obj;
     },
   }
-})
+});
 
 export const todoStore = defineStore('todoStoreId', {
   state: () => ({
@@ -80,4 +86,4 @@ export const todoStore = defineStore('todoStoreId', {
       this.worker = null;
     }
   }
-})
+});

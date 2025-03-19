@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 4659796 */
-  src: url('iconfont.woff2?t=1724675875673') format('woff2'),
-       url('iconfont.woff?t=1724675875673') format('woff'),
-       url('iconfont.ttf?t=1724675875673') format('truetype');
+  src: url('iconfont.woff2?t=1740532309367') format('woff2'),
+       url('iconfont.woff?t=1740532309367') format('woff'),
+       url('iconfont.ttf?t=1740532309367') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,18 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-ziyuan:before {
+  content: "\e610";
+}
+
+.icon-yunpanlogo-_huabanfuben:before {
+  content: "\e611";
+}
+
+.icon-chanpingdaquan:before {
+  content: "\e75c";
 }
 
 .icon-shoucang8:before {

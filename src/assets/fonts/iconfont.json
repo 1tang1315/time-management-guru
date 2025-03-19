@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "5651179",
+      "name": "上传云盘",
+      "font_class": "ziyuan",
+      "unicode": "e610",
+      "unicode_decimal": 58896
+    },
+    {
+      "icon_id": "13410110",
+      "name": "云盘 - 下载",
+      "font_class": "yunpanlogo-_huabanfuben",
+      "unicode": "e611",
+      "unicode_decimal": 58897
+    },
+    {
+      "icon_id": "29931301",
+      "name": "chanpingdaquan",
+      "font_class": "chanpingdaquan",
+      "unicode": "e75c",
+      "unicode_decimal": 59228
+    },
+    {
       "icon_id": "1120978",
       "name": "收藏",
       "font_class": "shoucang8",

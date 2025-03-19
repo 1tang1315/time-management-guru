@@ -1,6 +1,6 @@
 <template>
   <div class="addActivityPopup">
-    <h4 class="title">{{ currentTodo.text }}</h4>
+    <h4 class="title">{{ currentTodo.name }}</h4>
     <div class="time">
       <div class="beginTime">
         <VueCtkDateTimePicker v-model="beginTime" label="请选择开始时间" locale="zh-cn" format="YYYY-MM-DD HH:mm" auto-close
@@ -11,15 +11,10 @@
           id="结束时间" />
       </div>
     </div>
+    
     <div class="input">
       <div class="experience">
-        <span>心得</span>
-        <textarea v-model="experience"></textarea>
-      </div>
-
-      <div class="status">
-        <span>状态</span>
-        <textarea v-model="status"></textarea>
+        <textarea v-model="experience" placeholder="请输入心得体会..."></textarea>
       </div>
     </div>
     <div class="btn">
@@ -30,48 +25,49 @@
 </template>
 
 <script setup>
-import { ref, toRaw } from 'vue';
+import { ref } from 'vue';
 import moment from 'moment';
 
 import VueCtkDateTimePicker from 'vue-ctk-date-time-picker';
 import 'vue-ctk-date-time-picker/dist/vue-ctk-date-time-picker.css';
 
 import { todoData } from '@/hooks/todoData';
+import { Activity } from "@/db/model/Activity.js";
 const { currentTodo } = todoData();
-const { updateTodoHandle, updateTodoActivityHandle, updateTodoActivityPopupHandle, updateTodoSettingPopupHandle } = todoData();
+const { updateTodoActivityPopupHandle, updateTodoSettingPopupHandle } = todoData();
+
+import { ActivityController } from "@/db/controller/ActivityController.js";
+const activityController = new ActivityController();
 
 const beginTime = ref(moment().format('YYYY-MM-DD HH:mm'))
 const endTime = ref(moment().format('YYYY-MM-DD HH:mm'))
-const experience = ref('无');
-const status = ref('已完成');
+const experience = ref('');
 
 const addActivityConfirm = async () => {
   const duration = (new Date(endTime.value) - new Date(beginTime.value)) / (1000 * 60);
+  
   if (duration < 1) {
     alert("时间间隔不能小于一分钟, 不做记录");
-    updateTodoActivityPopupHandle(false);
     return;
   }
-  const activityObject = {
-    text: currentTodo.value.text,
-    date: `${beginTime.value} 至 ${endTime.value}`,
+  
+  const activityObject = new Activity({
+    todoId: currentTodo.value.id,
+    todoName: currentTodo.value.name,
+    beginTime: beginTime.value,
+    endTime: endTime.value,
     duration: duration.toString(),
-    content: {
-      experience: experience.value,
-      progres: "100%",
-      status: status.value
-    }
-  }
-  // 更新todos表和activities表
-  currentTodo.value.activities.push(activityObject);
-  await updateTodoHandle(toRaw(currentTodo.value));
+    experience: experience.value || '无'
+  });
 
   // 将该专注添如activities数据库
-  await updateTodoActivityHandle(activityObject)
+  await activityController.update(activityObject);
+  
   alert("记录添加成功");
   updateTodoActivityPopupHandle(false);
   updateTodoSettingPopupHandle(false);
 }
+
 const addActivityCancel = () => {
   updateTodoActivityPopupHandle(false);
 }
@@ -99,8 +95,7 @@ const addActivityCancel = () => {
     flex-direction: row;
     justify-content: center;
 
-    .experience,
-    .status {
+    .experience {
       display: flex;
       flex-direction: column;
       margin: 0 10px;
@@ -108,9 +103,11 @@ const addActivityCancel = () => {
     }
 
     textarea {
-      width: 100px;
-      height: 100px;
-      margin: 0;
+      width: 350px;
+      height: 150px;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 10px;
       border: none;
       outline: none;
     }

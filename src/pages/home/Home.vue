@@ -1,32 +1,40 @@
 <template>
   <div class="home">
     <Header />
+    
     <div class="content">
       <div class="left">
         <h1 class="title">时间轴({{ currentDate }})</h1>
-        <div class="time-axis" v-if="dayData.length != 0">
+        
+        <div class="time-axis" v-if="dayData?.length !== 0">
           <div class="box">
             <ul id="first-list">
-              <li v-for="item in dayData" :key="item.date">
-                <span></span>
-                <div class="info">
-                  <span>{{ item.text }}</span>
-                  <span>{{ item.duration / 60 >= 1 ? Math.floor(item.duration / 60) + '小时' + item.duration % 60 + '分钟' :
-                    item.duration + '分钟'
-                  }}</span>
-                </div>
+              <li v-for="item in dayData" :key="item.beginTime">
                 <div class="time">
-                  <span>{{ item.date.split('至')[0].trim().split(' ')[1] }}</span>
-                  <span>{{ item.date.split('至')[1].trim().split(' ')[1] }}</span>
+                  <span>{{ item.beginTime.split(' ')[1]}}</span>
+                  <span>{{ item.endTime.split(' ')[1]}}</span>
+                </div>
+                <span></span>
+                <div class="content">
+                  <div class="info">
+                    <span>{{ item.todoName }}</span>
+                    <span>{{ item.duration / 60 >= 1 ? Math.floor(item.duration / 60) + '小时' + item.duration % 60 + '分钟' :
+                      item.duration + '分钟'
+                      }}</span>
+                  </div>
+                  
+                  <div>{{item.experience}}</div>
                 </div>
               </li>
             </ul>
           </div>
         </div>
+        
         <div v-else class="null">
           <h2>暂无数据</h2>
         </div>
       </div>
+      
       <div class="center">
         <h1 class="title">{{ currentDateShow }}</h1>
         <div class="subtitle">
@@ -38,7 +46,7 @@
           <button class="btn-left" @click="handleBtnLeft">&lt</button>
           <ul>
             <li v-for="(item, index) in ['日', '周', '月']" :key="item" :data-index='index'
-              :class="PieActiveIndex == index ? 'pie-active' : ''">
+              :class="Number(PieActiveIndex) === index ? 'pie-active' : ''">
               {{ item }}
             </li>
           </ul>
@@ -66,10 +74,10 @@ import Todo from '../../components/Todo.vue';
 import { onMounted, ref, onUpdated, watch } from 'vue';
 import { useChart } from '@/hooks/useChart';
 const { echarts, PieInit, ChartInit, filterZeroData } = useChart();
-
-import { getActivitiesByDate } from '@/db/activities.js';
-
 import moment from 'moment';
+import { ActivityController } from "@/db/controller/ActivityController.js";
+
+const activityController = new ActivityController();
 
 const page = 'home';
 
@@ -79,14 +87,14 @@ const currentDateShow = ref(moment().format('YYYY年MM月DD日'));
 const PieActiveIndex = ref(0);
 
 const pieChartRef = ref(null);
-const pieChart = ref(null);
+const pieChart = ref({});
 
 const YearLineChartRef = ref(null);
-const YearLineChart = ref(null);
+const YearLineChart = ref({});
 const MonthLineChartRef = ref(null);
-const MonthLineChart = ref(null);
+const MonthLineChart = ref({});
 const SeasonLineChartRef = ref(null);
-const SeasonLineChart = ref(null);
+const SeasonLineChart = ref({});
 
 const date = ref('日'); // 日 月 周
 
@@ -99,12 +107,13 @@ function statistics(dataArray) {
   total.value = 0;
   count.value = 0;
   const pieData = [];
-  dataArray.forEach(item => {
+  
+  dataArray?.forEach(item => {
     count.value++;
     total.value += Number(item.duration);
 
     // 查找 pieData 中是否已经存在具有相同 name 的项
-    let existingItem = pieData.find(pieItem => pieItem.name == item.text);
+    let existingItem = pieData.find(pieItem => pieItem.name === item.todoName);
 
     if (existingItem) {
       // 如果存在，则将 duration 添加到现有的项上
@@ -113,7 +122,7 @@ function statistics(dataArray) {
       // 如果不存在，则创建一个新的项
       pieData.push({
         value: Number(item.duration),
-        name: item.text
+        name: item.todoName
       });
     }
   })
@@ -121,12 +130,13 @@ function statistics(dataArray) {
 }
 
 // 数据统计(底部折线图  每月总时长统计)
-async function Monthstatistics(month) {
+async function MonthStatistics(month) {
   let total = 0;
-  const monthData = await getActivitiesByDate(month);
-  monthData.forEach(item => {
+  const monthData = await activityController.getActivityByDate(month);
+
+  monthData?.forEach(item => {
     total += Number(item.duration);
-  })
+  });
   return total;
 }
 
@@ -157,7 +167,7 @@ function getWeekDetails(date) {
 }
 
 onMounted(async () => {
-  dayData.value = await getActivitiesByDate(currentDate.value);
+  dayData.value = await activityController.getActivityByDate(currentDate.value);
 
   const pieData = statistics(dayData.value);
 
@@ -169,22 +179,22 @@ onMounted(async () => {
 
   const year = currentDate.value.toString().split('-')[0];
   const month = currentDate.value.toString().split('-')[1];
-  upDateYearLineAndSessionsLine(year);
+  await upDateYearLineAndSessionsLine(year);
 
-  upDateMonthLine(year, month);
+  await upDateMonthLine(year, month);
 
   PieInit(pieChart.value, currentDateShow.value, pieData);
-})
+});
 
 const handlePieChange = async (e) => {
   const target = e.target; // 获取被点击的元素
   if (target.tagName === 'LI') {
     PieActiveIndex.value = target.getAttribute('data-index');
-    if (target.textContent == '日') {
+    if (target.textContent === '日') {
       date.value = '日';
-      const pieData = statistics(await getActivitiesByDate(currentDate.value));
+      const pieData = statistics(await activityController.getActivityByDate(currentDate.value));
       PieInit(pieChart.value, currentDateShow.value, pieData)
-    } else if (target.textContent == '周') {
+    } else if (target.textContent === '周') {
       date.value = '周';
       const weekDetails = getWeekDetails(currentDate.value);
 
@@ -193,15 +203,15 @@ const handlePieChange = async (e) => {
       for (let i = 0; i < 7; i++) {
         const date = String(weekDetails.startDate.split('-')[0]) + '-' + String(weekDetails.startDate.split('-')[1]) + '-' + String(Number(weekDetails.startDate.split('-')[2]) + Number(i)).padStart(2, '0');
 
-        weekData.push(await getActivitiesByDate(date));
+        weekData.push(await activityController.getActivityByDate(date));
       }
       weekData = statistics(weekData.flat(1));
 
       PieInit(pieChart.value, text, weekData)
-    } else if (target.textContent == '月') {
+    } else if (target.textContent === '月') {
       date.value = '月';
       const text = currentDateShow.value.toString().slice(0, -3);
-      const data = await getActivitiesByDate(currentDate.value.toString().slice(0, -3));
+      const data = await activityController.getActivityByDate(currentDate.value.toString().slice(0, -3));
       const monthData = statistics(data);
 
       PieInit(pieChart.value, text, monthData)
@@ -210,12 +220,12 @@ const handlePieChange = async (e) => {
 }
 
 const handleBtnLeft = async () => {
-  if (date.value == '日') {
+  if (date.value === '日') {
     currentDate.value = moment(currentDate.value).subtract(1, 'days').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
-    const pieData = statistics(await getActivitiesByDate(currentDate.value));
+    const pieData = statistics(await activityController.getActivityByDate(currentDate.value));
     PieInit(pieChart.value, currentDateShow.value, pieData)
-  } else if (date.value == '周') {
+  } else if (date.value === '周') {
     currentDate.value = moment(currentDate.value).subtract(1, 'week').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const weekDetails = getWeekDetails(currentDate.value);
@@ -225,28 +235,28 @@ const handleBtnLeft = async () => {
     for (let i = 0; i < 7; i++) {
       const date = String(weekDetails.startDate.split('-')[0]) + '-' + String(weekDetails.startDate.split('-')[1]) + '-' + String(Number(weekDetails.startDate.split('-')[2]) + Number(i)).padStart(2, '0');
 
-      weekData.push(await getActivitiesByDate(date));
+      weekData.push(await activityController.getActivityByDate(date));
     }
     weekData = statistics(weekData.flat(1));
 
     PieInit(pieChart.value, text, weekData)
-  } else if (date.value == '月') {
+  } else if (date.value === '月') {
     currentDate.value = moment(currentDate.value).subtract(1, 'month').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const text = currentDateShow.value.toString().slice(0, -3);
-    const data = await getActivitiesByDate(currentDate.value.toString().slice(0, -3));
+    const data = await activityController.getActivityByDate(currentDate.value.toString().slice(0, -3));
     const monthData = statistics(data);
 
     PieInit(pieChart.value, text, monthData)
   }
 }
 const handleBtnRight = async () => {
-  if (date.value == '日') {
+  if (date.value === '日') {
     currentDate.value = moment(currentDate.value).add(1, 'days').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
-    const pieData = statistics(await getActivitiesByDate(currentDate.value));
+    const pieData = statistics(await activityController.getActivityByDate(currentDate.value));
     PieInit(pieChart.value, currentDateShow.value, pieData)
-  } else if (date.value == '周') {
+  } else if (date.value === '周') {
     currentDate.value = moment(currentDate.value).add(1, 'week').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const weekDetails = getWeekDetails(currentDate.value);
@@ -256,16 +266,16 @@ const handleBtnRight = async () => {
     for (let i = 0; i < 7; i++) {
       const date = String(weekDetails.startDate.split('-')[0]) + '-' + String(weekDetails.startDate.split('-')[1]) + '-' + String(Number(weekDetails.startDate.split('-')[2]) + Number(i)).padStart(2, '0');
 
-      weekData.push(await getActivitiesByDate(date));
+      weekData.push(await activityController.getActivityByDate(date));
     }
     weekData = statistics(weekData.flat(1));
 
     PieInit(pieChart.value, text, weekData)
-  } else if (date.value == '月') {
+  } else if (date.value === '月') {
     currentDate.value = moment(currentDate.value).add(1, 'month').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const text = currentDateShow.value.toString().slice(0, -3);
-    const data = await getActivitiesByDate(currentDate.value.toString().slice(0, -3));
+    const data = await activityController.getActivityByDate(currentDate.value.toString().slice(0, -3));
     const monthData = statistics(data);
 
     PieInit(pieChart.value,text, monthData)
@@ -281,15 +291,15 @@ const upDateYearLineAndSessionsLine = async (year) => {
   for (let month = 1; month < 13; month++) {
     const date = year + '-' + month.toString().padStart(2, '0');
     lineYearName.push(date);
-    lineYearData.push(await Monthstatistics(date))
-    if (month == 3 || month == 4 || month == 5) {
-      lineSessionData[0] += Number(await Monthstatistics(date));
-    } else if (month == 6 || month == 7 || month == 8) {
-      lineSessionData[1] += Number(await Monthstatistics(date));
-    } else if (month == 9 || month == 10 || month == 11) {
-      lineSessionData[2] += Number(await Monthstatistics(date));
-    } else if (month == 12 || month == 1 || month == 2) {
-      lineSessionData[3] += Number(await Monthstatistics(date));
+    lineYearData.push(await MonthStatistics(date))
+    if (month === 3 || month === 4 || month === 5) {
+      lineSessionData[0] += Number(await MonthStatistics(date));
+    } else if (month === 6 || month === 7 || month === 8) {
+      lineSessionData[1] += Number(await MonthStatistics(date));
+    } else if (month === 9 || month === 10 || month === 11) {
+      lineSessionData[2] += Number(await MonthStatistics(date));
+    } else if (month === 12 || month === 1 || month === 2) {
+      lineSessionData[3] += Number(await MonthStatistics(date));
     }
   }
 
@@ -304,7 +314,7 @@ watch(() => currentDate.value.toString().split('-')[0], (newYearValue) => {
   upDateYearLineAndSessionsLine(newYearValue);
 }, {
   immediate: false,
-})
+});
 
 const upDateMonthLine = async (year, month) => {
   const lineMonthData = [];
@@ -313,7 +323,7 @@ const upDateMonthLine = async (year, month) => {
   for (let day = 1; day < 32; day++) {
     const date = year + '-' + month + '-' + day.toString().padStart(2, '0');
     lineMonthName.push(day + '日');
-    lineMonthData.push(await Monthstatistics(date))
+    lineMonthData.push(await MonthStatistics(date))
   }
 
   const { xData: monthXData, yData: monthYData } = filterZeroData(lineMonthName, lineMonthData);  
@@ -324,11 +334,11 @@ watch(() => currentDate.value.toString().split('-')[1], (newMonthValue) => {
   upDateMonthLine(year, newMonthValue);
 }, {
   immediate: false,
-})
+});
 
 onUpdated(async () => {
-  dayData.value = await getActivitiesByDate(currentDate.value);
-})
+  dayData.value = await activityController.getActivityByDate(currentDate.value);
+});
 </script>
 
 <style lang="scss" scoped>
@@ -470,7 +480,7 @@ onUpdated(async () => {
   }
 
   .box ul li {
-    margin: 0px 0px 35px 60px;
+    margin: 0 0 35px 60px;
     position: relative;
     padding: 10px 20px;
     background: #203853;
@@ -513,9 +523,14 @@ onUpdated(async () => {
     top: 95%
   }
 
+  .box ul li .content {
+    display: block;
+  }
+  
   .box .info {
     display: flex;
     justify-content: space-between;
+    margin-bottom: 5px;
   }
 
   .box .time span {

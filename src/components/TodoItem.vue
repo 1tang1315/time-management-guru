@@ -1,17 +1,18 @@
 <template>
   <draggable :list="localTodos" item-key="text" :move="onMove">
     <template #item="{ element: todo }">
-      <li :key="todo.text">
-        <input :id="todo.text" type="checkbox" v-model="todo.completed" @change="isCompleted(todo)">
-        <label :for="todo.text" :class="{ 'completed': todo.completed }" class="text">{{ todo.text }}</label>
-        <button class="begin" :disabled="todo.isUnderway" @click="handleBegin(todo)">开始</button>
-        <button class="get-detail" @click="getTodoDetail(todo)" v-if="page == 'guide'">详情</button>
+      <li :key="todo.id">
+        <input :id="todo.name" type="checkbox" v-model="todo.completed" @change="isCompleted(todo)">
+        <label :for="todo.name" :class="{ 'completed': todo.completed }" class="text">{{ todo.name }}</label>
+        <button class="begin" :disabled="todo.isTiming" @click="handleBegin(todo)">开始</button>
+        <button class="get-detail" @click="getTodoDetail(todo)" v-if="page === 'guide'">详情</button>
         <button class="setting" @click="handleSetting(todo)">设置</button>
       </li>
     </template>
   </draggable>
+  
   <teleport to='body'>
-    <TodoSettingPopup />
+    <TodoSettingPopup v-if="todoSettingPopup" :todoId="todoId"/>
   </teleport>
 </template>
 
@@ -21,8 +22,8 @@ import draggable from 'vuedraggable';
 import TodoSettingPopup from '@/components/popup/TodoSettingPopup.vue';
 
 import { todoData } from '@/hooks/todoData';
-const { currentTodo } = todoData();
-const { ChangeCurrentTodoHandle, updateTodoSettingPopupHandle, updateTodoHandle, updateTimingPopupHandle } = todoData();
+const { currentTodo, todoSettingPopup } = todoData();
+const { ChangeCurrentTodoHandle, updateTodoSettingPopupHandle, updateTimingPopupHandle } = todoData();
 
 import { timerWorkerData } from '@/hooks/timeWorkerData.js';
 const { ChangeIsRunningHandle, initWorkerHandle, startTimer, resetTimer } = timerWorkerData();
@@ -32,13 +33,17 @@ const { getCollectionHandle, updateCollectionHandle } = collectionData();
 
 import moment from 'moment';
 
+import { TodoController } from "@/db/controller/TodoController.js";
+const todoController = new TodoController();
+
 const props = defineProps(['todos', 'page']);
 const emit = defineEmits(['updateTodos']);
-const handletodoDetail = inject('handletodoDetail', () => {});
+const handleTodoDetail = inject('handleTodoDetail', () => {});
 
 const localTodos = ref([]);
-onMounted(() => {
-  localTodos.value = [...props.todos].sort((a, b) => a.order - b.order);
+const todoId = ref('');
+onMounted(async () => {
+  localTodos.value = props.todos;
 });
 
 const onMove = async (evt) => {
@@ -57,8 +62,8 @@ const onMove = async (evt) => {
       collectionElement.todos = JSON.parse(JSON.stringify(toRaw(localTodos.value)));
       await updateCollectionHandle(toRaw(collectionElement));
     }
-    await updateTodoHandle(toRaw(draggedElement));
-    await updateTodoHandle(toRaw(targetElement));
+    await todoController.update(toRaw(draggedElement));
+    await todoController.update(toRaw(targetElement));
   }
 
   emit('updateTodos', [...localTodos.value]);
@@ -75,24 +80,26 @@ const handleBegin = async (todo) => {
 
   ChangeIsRunningHandle(true);
   updateTimingPopupHandle(true);
-  todo.isUnderway = true;
-  todo.beginDate = moment().format('YYYY-MM-DD HH:mm');
+  todo.isTiming = true;
+  todo.beginTime = moment().format('YYYY-MM-DD HH:mm');
   currentTodo.value = todo;
 
-  await updateTodoHandle(toRaw(todo));
+  await todoController.update(toRaw(todo));
 }
+
 const handleSetting = (todo) => {
+  todoId.value = todo.id;
   ChangeCurrentTodoHandle(todo);
   updateTodoSettingPopupHandle(true);
 }
 
 // 彻底完成?
 const isCompleted = async (todo) => {
-  await updateTodoHandle(toRaw(todo));
+  await todoController.update(toRaw(todo));
 }
 
 const getTodoDetail = async (todo) => {
-  handletodoDetail(todo);
+  handleTodoDetail(todo);
 }
 </script>
 
