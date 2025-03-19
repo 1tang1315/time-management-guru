@@ -24,7 +24,7 @@ self.onmessage = function(e) {
 function updateTimer() {
   if (isRunning) {
     seconds++;
-    if (seconds == 60) {
+    if (seconds === 60) {
       seconds = 0;
       minutes++;
     }

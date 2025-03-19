@@ -5,7 +5,6 @@ import Home from '@/pages/home/Home.vue';
 import Detail from '@/pages/detail/Detail.vue';
 import Guide from '@/pages/guide/Guide.vue';
 import Me from '@/pages/me/me.vue';
-import FileAnalysis from '@/components/FileAnalysis.vue';
 
 const routes = [
   {
@@ -27,11 +26,6 @@ const routes = [
     path: '/me',
     name: 'me',
     component: Me,
-  },
-  {
-    path: '/file',
-    name: 'fileAnalysis',
-    component: FileAnalysis,
   }
 ];
 

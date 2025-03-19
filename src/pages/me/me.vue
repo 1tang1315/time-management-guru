@@ -1,22 +1,26 @@
 <template>
-  <Header />
+  <Header/>
   <div class="me">
     <div class="contain">
       <h3 class="title">个人</h3>
       <ul class="personage">
         <li>
           <h4 class="title">
-            星座  
+            星座
             <input type="text" v-model="consName" @keyup.enter="changeConstellation">
             <a :href="constellationIntactURL" target="_blank">更详细的数据</a>
           </h4>
-          <span class="text">{{ todaySummarize }}</span>
+          <div class="constellation-loader-container" v-if="isConstellationLoader  === true">
+            <div class="constellation-loader"></div>
+          </div>
+          <span class="text" v-else>{{ todaySummarize }}</span>
         </li>
         <li>
           <h4 class="title">座右铭
-            <input class="add-motto" type="text" v-model="addMotto" @blur="handleAddMotto" @keyup.enter="handleAddMotto">
+            <input class="add-motto" type="text" v-model="addMotto" @blur="handleAddMotto"
+                   @keyup.enter="handleAddMotto">
           </h4>
-          <li class="text" v-for="(motto, index) in mottos" :key="motto">
+          <li class="text" v-for="(motto, index) in user.motto" :key="motto">
             <button class="setting-as-header-title" @click="handleSettingAsHeaderTitle(motto)">设为头部标题</button>
             <button class="delete" @click="handleDelete(index)">删除</button>
             {{ motto }}
@@ -29,48 +33,72 @@
         </li>
       </ul>
     </div>
+    
     <div class="contain">
       <h3 class="title">数据</h3>
       <ul class="data">
         <li @click="dataExportHandle">
           <span class="iconfont icon-xiazai"></span>
-          数据导出
+          本地数据导出
         </li>
         <li>
           <span class="iconfont icon-shangchuan" @click="triggerFileUpload"></span>
-          <input type="file" ref="uploadFileRef" @change="handleFile" style="display: none;" />
-          数据导入
+          <input type="file" ref="uploadFileRef" @change="handleFile" style="display: none;"/>
+          本地数据导入
         </li>
-        <li>
-          <span class="iconfont icon-tongbu1"></span>
-          数据同步
+        <li @click="handelUploadCloud">
+          <span class="iconfont icon-ziyuan"></span>
+          <div v-if="isUploadCloud === false">本地数据上传云盘</div>
+          <div v-else class="sync-text">
+            数据上传中
+            <div class="sync-loader"></div>
+          </div>
+        </li>
+        <li @click="handelDownloadCloud">
+          <span class="iconfont icon-yunpanlogo-_huabanfuben"></span>
+          <div v-if="isDownloadCloud === false">云盘数据覆盖本地</div>
+          <div v-else class="sync-text">
+            数据下载中
+            <div class="sync-loader"></div>
+          </div>
+        </li>
+        <li @click="handelIncrementSync">
+          <span class="iconfont icon-chanpingdaquan"></span>
+          <div v-if="isIncrementSync === false">数据同步</div>
+          <div v-else class="sync-text">
+            数据同步中
+            <div class="sync-loader"></div>
+          </div>
         </li>
       </ul>
     </div>
-
+    
     <div class="contain">
-        <h3 class="title">主题</h3>
-        <ul class="data">
-          <li @click="changeTheme">
-            <span class="iconfont icon-taiyang"></span>
-          </li>
-          <li @click="changeTheme">
-            <span class="iconfont icon-moon-fill"></span>
-          </li>
-        </ul>
-      </div>
+      <h3 class="title">主题</h3>
+      <ul class="data">
+        <li @click="changeTheme">
+          <span class="iconfont icon-taiyang"></span>
+        </li>
+        <li @click="changeTheme">
+          <span class="iconfont icon-moon-fill"></span>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script setup>
 import Header from '@/components/Header.vue';
-import { onMounted, ref, nextTick, computed, toRaw } from 'vue';
+import { onMounted, ref, computed, toRaw } from 'vue';
 import { exportIndexedDB, importIndexedDB } from '@/db/initDB.js';
-import { getMeByKey, updateMe } from '@/db/me.js';
 import { initStore } from '@/store/index.js';
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from 'pinia';
+import { UserController } from "@/db/controller/UserController.js";
+import { uploadFile, downloadFile, incrementSync } from '@/utils/webdavClient';
+
+const userController = new UserController();
 const store = initStore();
-const { isDarkTheme } = storeToRefs(store)
+const { isDarkTheme, user } = storeToRefs(store);
 
 // 个人
 // 星座
@@ -99,51 +127,39 @@ const constellationIntactURL = computed(() => {
 });
 
 // 座右铭
-const mottos = ref([]);
 const addMotto = ref('');
 
-onMounted(async () => {
-  const result = await getMeByKey('mottos');
-  if (result) {
-    mottos.value = result.value;
-  }
-})
-const handleAddMotto = (event) => {
-  if (addMotto.value.trim()) {
-    mottos.value.push(addMotto.value.trim());
-    const mottosObj = {
-      key: 'mottos',
-      value: toRaw(mottos.value)
-    }
-    updateMe(mottosObj);
+const handleAddMotto = async (event) => {
+  if(addMotto.value.trim()) {
+    user.value.motto.push(addMotto.value.trim());
+    await userController.update(toRaw(user.value));
+    
     addMotto.value = '';
     event.target.blur();
     alert('添加成功!!!');
   }
 }
-const handleSettingAsHeaderTitle = (motto) => {
-  const mottoObj = {
-    key: 'motto',
-    value: motto
+const handleDelete = async (index) => {
+  if(confirm("您确定要删除此句座右铭吗?")) {
+    user.value.motto.splice(index, 1);
+
+    await userController.update(toRaw(user.value));
   }
-  updateMe(mottoObj);
+}
+const handleSettingAsHeaderTitle = (motto) => {
+  user.value.title = motto;
+  userController.update(toRaw(user.value));
   alert("设置成功!");
 }
-const handleDelete = (index) => {
-  if (confirm("您确定要删除此句座右铭吗?")) {
-    mottos.value.splice(index, 1);
-    const mottosObj = {
-      key: 'mottos',
-      value: toRaw(mottos.value)
-    }
-    updateMe(mottosObj);
-  }
-}
+
+const isConstellationLoader = ref(false);
 
 async function getConstellation() {
+  isConstellationLoader.value = true;
+  
   const apiKey = 'fc3f8344aa73785e5838bcef6f4e364c';
-  const url = `http://localhost:5173/constellationApi/constellation/getAll?consName=${encodeURIComponent(consName.value)}&type=${type.value}&key=${apiKey}`;
-
+  const url = `/constellationApi/constellation/getAll?consName=${encodeURIComponent(consName.value)}&type=${type.value}&key=${apiKey}`;
+  
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -151,22 +167,24 @@ async function getConstellation() {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
-    if (!response.ok) {
+    if(!response.ok) {
       throw new Error('请求失败');
     }
     const result = await response.json();
     todaySummarize.value = result.summary;
-    if (todaySummarize.value) {
+    if(todaySummarize.value) {
+      isConstellationLoader.value = false;
       sessionStorage.setItem('todaySummarize', todaySummarize.value);
     }
-  } catch (error) {
+  } catch(error) {
     console.error('请求错误:', error);
   }
 }
+
 onMounted(async () => {
   todaySummarize.value = sessionStorage.getItem('todaySummarize');
-  if (!todaySummarize.value) { 
-    getConstellation();
+  if(!todaySummarize.value) {
+    await getConstellation();
   }
 })
 const changeConstellation = () => {
@@ -176,10 +194,11 @@ const changeConstellation = () => {
 // 心灵鸡汤
 const isCollect = ref(false);
 const carlet = ref('');
-async function getCarlet () {
-  const apiKey = 'b393eb0dc93d9c2b990d8aadd23137f9';
-  const url = `http://localhost:5173/carletApi/fapig/soup/query?key=${apiKey}`;
 
+async function getCarlet() {
+  const apiKey = 'b393eb0dc93d9c2b990d8aadd23137f9';
+  const url = `/carletApi/fapig/soup/query?key=${apiKey}`;
+  
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -187,44 +206,40 @@ async function getCarlet () {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
-    if (!response.ok) {
+    if(!response.ok) {
       throw new Error('请求失败');
     }
     const result = await response.json();
-    console.log(result);
-    if (result.reason == "success") {
+
+    if(result.reason === "success") {
       carlet.value = result.result.text;
-      if (carlet.value) {
+      if(carlet.value) {
         sessionStorage.setItem('carlet', carlet.value);
       }
     }
-  } catch (error) {
+  } catch(error) {
     console.error('请求错误:', error);
   }
 }
+
 onMounted(() => {
   isCollect.value = sessionStorage.getItem('isCollect');
   carlet.value = sessionStorage.getItem('carlet');
-  if (!carlet.value) { 
+  if(!carlet.value) {
     getCarlet();
   }
-})
+});
 const isCollectHandle = () => {
   isCollect.value = !isCollect.value;
   sessionStorage.setItem('isCollect', isCollect.value);
-  if (isCollect.value && carlet.value) {
-    console.log(mottos.value)
-    const result = mottos.value.filter(item => item == carlet.value)[0];
-    if (result) {
+  if(isCollect.value && carlet.value) {
+    const result = user.value.motto?.filter(item => item === carlet.value)[0];
+    if(result) {
       alert('该语录已收藏');
       return;
     }
-    mottos.value.push(carlet.value);
-    const mottosObj = {
-      key: 'mottos',
-      value: toRaw(mottos.value)
-    }
-    updateMe(mottosObj);
+    user.value.motto.push(carlet.value);
+    userController.update(toRaw(user.value));
   }
 }
 
@@ -232,21 +247,21 @@ const isCollectHandle = () => {
 // 导出整个indexdb数据库的数据
 const dataExportHandle = async () => {
   const userConfirmed = confirm('确定要导出全部数据吗？');
-
-  if (userConfirmed) {
+  
+  if(userConfirmed) {
     try {
       const data = await exportIndexedDB();
       const jsonData = JSON.stringify(data);
       const blob = new Blob([jsonData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-
+      
       const a = document.createElement('a');
       a.href = url;
       a.download = '人生时间管理大师.json';
       a.click();
-
+      
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch(error) {
       console.error(error);
     }
   }
@@ -260,7 +275,7 @@ const triggerFileUpload = () => {
 const handleFile = (event) => {
   const file = event.target.files[0];
   const reader = new FileReader();
-
+  
   reader.onload = async function(e) {
     const data = JSON.parse(e.target.result);
     importIndexedDB(data).then(() => {
@@ -273,6 +288,60 @@ const handleFile = (event) => {
   reader.readAsText(file);
 }
 
+/**
+ * 数据同步
+ */
+const isUploadCloud = ref(false);
+const isDownloadCloud = ref(false);
+const isIncrementSync = ref(false);
+
+// 文件上传到云盘
+const handelUploadCloud = async () => {
+  isUploadCloud.value = true;
+  
+  try {
+    const data = await exportIndexedDB();
+    const jsonData = JSON.stringify(data);
+    
+    // 上传文件
+    const uploadUrl = '/人生时间管理大师/人生时间管理大师.json';
+    await uploadFile(uploadUrl, jsonData);
+    alert('数据上传成功!');
+  } catch(error) {
+    console.error(error);
+    alert('数据上传失败!');
+  }
+  isUploadCloud.value = false;
+}
+// 云盘文件下载到本地 (覆盖本地数据库)
+const handelDownloadCloud = async () => {
+  isDownloadCloud.value = true;
+  
+  const result = await downloadFile('/人生时间管理大师/人生时间管理大师.json');
+  
+  importIndexedDB(result).then(() => {
+    alert("数据导入成功!!!");
+  }).catch(error => {
+    alert("数据导入失败!");
+    console.log("数据导入失败!", error);
+  });
+  
+  isDownloadCloud.value = false;
+}
+
+const handelIncrementSync = async () => {
+  isIncrementSync.value = true;
+  
+  try {
+    await incrementSync();
+    alert('数据同步成功');
+  } catch(e) {
+    console.log(e);
+    alert('数据同步失败');
+  }
+  
+  isIncrementSync.value = false;
+}
 
 // 主题
 const changeTheme = () => {
@@ -290,10 +359,12 @@ const changeTheme = () => {
 .title {
   margin: 0 0 8px 0;
   text-align: left;
+  
   a {
     margin-left: 10px;
     color: aqua;
   }
+  
   .add-motto {
     width: 200px;
     margin-left: 10px;
@@ -311,6 +382,7 @@ const changeTheme = () => {
     padding: 5px;
     margin-bottom: 10px;
     border: 1px dashed var(--primary-color);
+    
     input {
       width: 40px;
       color: var(--text-color);
@@ -319,6 +391,7 @@ const changeTheme = () => {
       background-color: transparent;
     }
   }
+  
   .text {
     width: 100%;
     display: -webkit-box;
@@ -338,6 +411,7 @@ const changeTheme = () => {
       background-color: #13a4cd;
       cursor: pointer;
     }
+    
     .delete {
       margin-right: 5px;
       padding: 5px 25px;
@@ -349,7 +423,7 @@ const changeTheme = () => {
       cursor: pointer;
     }
   }
-
+  
   .motto-edit {
     width: 97%;
     padding: 5px;
@@ -367,17 +441,17 @@ const changeTheme = () => {
   margin-bottom: 10px;
   border-radius: 8px;
   border: 1px solid var(--primary-color);
-
+  
   .data {
     display: flex;
-
+    
     li {
       min-width: 150px;
       height: 150px;
       margin-right: 20px;
       text-align: center;
       overflow: auto;
-
+      
       .iconfont {
         display: block;
         margin-bottom: 8px;
@@ -388,6 +462,59 @@ const changeTheme = () => {
         cursor: pointer;
       }
     }
+  }
+}
+
+// 星座今日运势加载动画
+.constellation-loader-container {
+  position: relative;
+  width: 100%;
+  height: 80px;
+}
+
+.constellation-loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  --d: 22px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  color: #25b09b;
+  box-shadow: calc(1 * var(--d)) calc(0 * var(--d)) 0 0,
+  calc(0.707 * var(--d)) calc(0.707 * var(--d)) 0 1px,
+  calc(0 * var(--d)) calc(1 * var(--d)) 0 2px,
+  calc(-0.707 * var(--d)) calc(0.707 * var(--d)) 0 3px,
+  calc(-1 * var(--d)) calc(0 * var(--d)) 0 4px,
+  calc(-0.707 * var(--d)) calc(-0.707 * var(--d)) 0 5px,
+  calc(0 * var(--d)) calc(-1 * var(--d)) 0 6px;
+  animation: l27 1s infinite steps(8);
+}
+
+@keyframes l27 {
+  100% {
+    transform: rotate(1turn)
+  }
+}
+
+// 数据同步动画
+.sync-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-loader {
+  width: 20px;
+  aspect-ratio: 4;
+  background: radial-gradient(circle closest-side, var(--text-color) 90%, #0000) 0/calc(100%/3) 100% space;
+  clip-path: inset(0 100% 0 0);
+  animation: l1 1s steps(4) infinite;
+}
+
+@keyframes l1 {
+  to {
+    clip-path: inset(0 -34% 0 0)
   }
 }
 </style>

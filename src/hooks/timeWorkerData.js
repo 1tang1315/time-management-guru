@@ -1,4 +1,3 @@
-import { ref } from 'vue';
 import { todoStore } from '@/store/index.js';
 import { storeToRefs } from 'pinia';
 

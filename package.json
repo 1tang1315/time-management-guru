@@ -12,7 +12,9 @@
     "@kangc/v-md-editor": "^2.3.18",
     "diff": "^5.2.0",
     "echarts": "^5.5.1",
+    "express": "^4.21.1",
     "fabric": "^6.1.0",
+    "http-proxy-middleware": "^3.0.3",
     "idb": "^8.0.0",
     "moment": "^2.30.1",
     "pdfjs-dist": "^4.4.168",
@@ -23,6 +25,7 @@
     "vue-datepicker-ui": "^3.1.1",
     "vue-router": "^4.4.0",
     "vuedraggable": "^4.1.0",
+    "webdav": "^5.8.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

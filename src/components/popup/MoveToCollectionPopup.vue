@@ -27,7 +27,7 @@ const handleMove = async (item) => {
   if (todo.collection) {
     // 移动到其他合集
     const collection = await getCollectionHandle(todo.collection);
-    collection.todos = collection.todos.filter(item => item.text !== todo.text);
+    collection.todos = collection.todos.filter(item => item.id !== todo.id);
     await updateCollectionHandle(collection);
   }
   todo.collection = item.name;

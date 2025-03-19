@@ -3,11 +3,10 @@
   <div class="top">
     <div class="left">
       <h4 class="title">今天计划或者待办项</h4>
-      <TodoComponent @todoDetail="handletodoDetail" :page="page" />
+      <TodoComponent @todoDetail="handleTodoDetail" :page="page" />
     </div>
     <div class="right">
-      <input class="chooseFile" type="file" ref="uploadRef" @change="handleFile" />
-      <v-md-editor v-model="markdown" height="480px" @save="handleSave"></v-md-editor>
+      <v-md-editor v-model="markdown" height="500px" @save="handleSave"></v-md-editor>
     </div>
   </div>
   <div class="bottom">
@@ -22,11 +21,13 @@
 import { ref, onMounted, provide, toRaw } from 'vue';
 import Header from '@/components/Header.vue';
 import TodoComponent from '@/components/Todo.vue';
-import * as XLSX from 'xlsx';
-import { saveToTodos, updateTodo, getTodo } from '@/db/todos.js';
-import { saveToActivities, getAllActivities } from '@/db/activities.js';
-import { updateMarkdown } from '@/db/markdowns.js';
 import { diffChars } from 'diff';
+
+import { ActivityController } from "@/db/controller/ActivityController.js";
+import { TodoController } from "@/db/controller/TodoController.js";
+
+const todoController = new TodoController();
+const activityController = new ActivityController();
 
 // 计算两个字符串的差异
 const mergeMarkdown = (original, generated) => {
@@ -80,7 +81,7 @@ const intervalTime = [
 onMounted(() => {
   barChart.value = echarts.init(barChartRef.value);
   lineChart.value = echarts.init(lineChartRef.value);
-})
+});
 // echart end
 
 
@@ -88,14 +89,15 @@ const page = 'guide';
 const markdown = ref('');
 
 onMounted(async () => {
-  const data = await getAllActivities();
+  const data = await activityController.getList();
   markdown.value = await convertToMarkdown(data);
-})
+});
 
 function StatisticsDataOfHour(data) {
   let intervalDuration = new Array(24).fill(0);
   data.forEach(item => {
-    const [start, end] = item.date.split(' 至 ');
+    const start = item.beginTime;
+    const end = item.endTime;
 
     const startHour = parseInt(start.split(' ')[1].split(':')[0], 10);
     const endHour = parseInt(end.split(' ')[1].split(':')[0], 10);
@@ -104,21 +106,21 @@ function StatisticsDataOfHour(data) {
 
 
     for (let hour = startHour; ; hour++) {
-      if (hour == 24) {
+      if (hour === 24) {
         hour = 0
       }
-      if (startHour == endHour) {
+      if (startHour === endHour) {
         intervalDuration[hour] += endMinute - startMinute;
         break;
-      } else if (hour == startHour && startHour !== endHour) {
+      } else if (hour === startHour && startHour !== endHour) {
         intervalDuration[hour] += (60 - startMinute);
-      } else if (hour == endHour) {
+      } else if (hour === endHour) {
         intervalDuration[hour] += endMinute;
       } else {
         intervalDuration[hour]++;
       }
 
-      if (hour == endHour) {
+      if (hour === endHour) {
         break;
       }
     }
@@ -130,13 +132,15 @@ function StatisticsDataOfEveryDay(data) {
   let xDayData = [];
   let yDayData = [];
   data.forEach((item) => {
-    const [start, end] = item.date.split(' 至 ');
+    const start = item.beginTime;
+    const end = item.endTime;
+    
     const startDay = start.split(' ')[0];
     const endDay = end.split(' ')[0];
     const endHour = parseInt(end.split(' ')[1].split(':')[0], 10);
     const endHourMinute = parseInt(end.split(' ')[1].split(':')[1], 10);
 
-    if (startDay == endDay) {
+    if (startDay === endDay) {
       let dateIndex = xDayData.indexOf(startDay);
       if (dateIndex !== -1) {
         // 日期存在
@@ -151,7 +155,7 @@ function StatisticsDataOfEveryDay(data) {
       let beginHour = Number(0);
       let endDayMinuteTotal = Number(0);
       while (true) {
-        if (beginHour == endHour) {
+        if (beginHour === endHour) {
           endDayMinuteTotal += endHourMinute;
           break;
         } else {
@@ -210,7 +214,6 @@ function calculateLongestStreak(dates) {
   return longestStreak;
 }
 
-
 // 将全部数据转换为Markdown格式
 async function convertToMarkdown(items) {
   const markdownOutput = [];
@@ -219,18 +222,17 @@ async function convertToMarkdown(items) {
   const addedDays = {}; // 跟踪已经添加的日
 
   let index = 0;
-  items.forEach(item => {
+  items?.forEach(item => {
     index++;
-    const time = item.date.split(' ')[0]; // 提取开头时间
+    const time = item.beginTime; // 提取开头时间
     const day = time.split('-')[2]; // 提取日部分
     const month = time.split('-')[1]; // 提取月部分
     const year = time.split('-')[0]; // 提取年部分
 
-    const date = item.date
+    const date = item.beginTime?.split(' ')[1] + '~' + item.endTime?.split(' ')[1];
     const duration = item.duration;
-    const experience = item.content.experience || ''; // 心得内容
-    const status = item.content.status; // 状态内容
-    const text = item.text;
+    const experience = item.experience || '无'; // 心得内容
+    const name = item.todoName;
 
     // 检查是否需要创建新的一级标题(年)
     if (!addedYears[year]) {
@@ -254,37 +256,39 @@ async function convertToMarkdown(items) {
     }
 
     // 添加条目到当前日期的内容
-    markdownOutput[markdownOutput.length - 1].content += `${index + 1}.${date} (${duration}分钟) ${text}: 心得: ${experience}; 状态:${status}\n`;
+    markdownOutput[markdownOutput.length - 1].content += `${index + 1}.${date} (${duration}分钟) ${name}: 心得: ${experience};\n`;
   });
 
   // 构建最终的Markdown字符串
   return markdownOutput.map(item => `${item.content}`).join('\n');
 }
 
-const handletodoDetail = (todoDetail) => {
-  const activities = toRaw(todoDetail.activities);
+const handleTodoDetail = async (todoDetail) => {
+  const activities = await activityController.getActivityByTodoId(todoDetail.id);
+  
   let totalTime = 0;
   activities.forEach(item => {
     totalTime += Number(item.duration);
   });
+  
   let hourTotal = Math.floor(totalTime / 60);
   let minute = totalTime % 60;
 
   const intervalDuration = StatisticsDataOfHour(activities);
   const { xData, yData } = filterZeroData(intervalTime, intervalDuration);
-  ChartInit(barChart.value, 'bar', todoDetail.text, `总时长: ${hourTotal}小时${minute}分钟`, xData, yData);
+  ChartInit(toRaw(barChart.value), 'bar', todoDetail.name, `总时长: ${hourTotal}小时${minute}分钟`, xData, yData);
 
   const { xDayData, yDayData } = StatisticsDataOfEveryDay(activities);
   const longestStreak = calculateLongestStreak(xDayData);
-  ChartInit(toRaw(lineChart.value), 'line', todoDetail.text, `最长连续专注天数: ${longestStreak}`, xDayData, yDayData, true);
+  ChartInit(toRaw(lineChart.value), 'line', todoDetail.name, `最长连续专注天数: ${longestStreak}`, xDayData, yDayData, true);
 
 
   // 将项目数据转化成Markdown
-  let markdownOutput = `## ${todoDetail.text}\n`;
+  let markdownOutput = `## ${todoDetail.name}\n`;
   let li = '';
 
-  todoDetail.activities.forEach((item, index) => {
-    markdownOutput += `${index + 1}.${item.date}(${item.duration}分钟): 心得: ${item.content.experience}; 状态: ${item.content.status}\n`;
+  activities.forEach((item, index) => {
+    markdownOutput += `${index + 1}.${item.beginTime}~${item.endTime}(${item.duration}分钟): 心得: ${item.experience};\n`;
 
     const hours = Math.floor(item.duration / 60); // 计算小时数
     const remainingMinutes = item.duration % 60; // 计算剩余的分钟数
@@ -293,12 +297,12 @@ const handletodoDetail = (todoDetail) => {
     li += `<li>
           <span class="dot"></span>
           <div class="info">
-            <span>${item.content.experience || todoDetail.text}</span>
+            <span>${item.experience || todoDetail.name}</span>
             <span>${time}</span>
           </div>
           <div class="time">
-            <span>${item.date.split('至')[0].trim()}</span>
-            <span>${item.date.split('至')[1].trim()}</span>
+            <span>${item.beginTime.trim()}</span>
+            <span>${item.endTime.trim()}</span>
           </div>
         </li>`
   })
@@ -408,7 +412,7 @@ const handletodoDetail = (todoDetail) => {
   }
 </style>
   <div class="time-axis">
-    <h4 class="title">${todoDetail.text}</h4>
+    <h4 class="title">${todoDetail.name}</h4>
     <div class="box">
       <ul id="first-list">
        ${li}
@@ -416,81 +420,26 @@ const handletodoDetail = (todoDetail) => {
     </div>
   </div>`;
 
+  // TODO
   markdown.value = mergeMarkdown(todoDetail.markdown, markdownOutput);
 }
-provide('handletodoDetail', handletodoDetail);
+provide('handleTodoDetail', handleTodoDetail);
 
-const uploadRef = ref(null);
 
-const handleFile = (event) => {
-  const file = event.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = async function(e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-
-    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-    const filteredData = json.slice(2); // 去掉开头两行
-
-    const formattedData = filteredData.reduce((acc, row) => {
-      const existingEntry = acc.find(entry => entry.text === row[1]);
-      const newActivity = {
-        date: row[0],
-        duration: row[2],
-        content: {
-          experience: row[3],
-          status: row[4],
-          progress: row[5]
-        }
-      };
-
-      if (existingEntry) {
-        existingEntry.activities.push(newActivity);
-      } else {
-        acc.push({
-          text: row[1],
-          completed: false,
-          activities: [newActivity]
-        });
-      }
-
-      return acc;
-    }, []);
-
-    const formattedData2 = filteredData.map(row => ({
-      date: row[0],
-      text: row[1],
-      duration: row[2],
-      content: {
-        experience: row[3],
-        status: row[4],
-        progress: row[5]
-      }
-    }));
-
-    await saveToActivities(formattedData2);
-    await saveToTodos(formattedData);
-  };
-
-  reader.readAsArrayBuffer(file);
-}
-
+// TODO: todo markdown?
 const handleSave = async (text) => {
   const key = text.split('\n')[0].split(' ')[1];
-  const todo = await getTodo(key);
+  const todo = await todoController.getById(key);
   if (todo) {
     todo['markdown'] = text;
-    updateTodo(todo);
+    todo.updated(todo);
   } else {
     // 拿到全部数据 全部数据或者年份之类的 不属于单个todo
     const data = {
       key: key,
       markdown: text
     }
-    await updateMarkdown(data);
+    // await updateMarkdown(data);
   }
 }
 </script>
@@ -512,10 +461,6 @@ const handleSave = async (text) => {
     height: 99%;
     margin-right: 10px;
     overflow: hidden;
-
-    .chooseFile {
-      margin-bottom: 10px;
-    }
   }
 }
 

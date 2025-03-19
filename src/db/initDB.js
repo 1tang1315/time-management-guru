@@ -1,38 +1,92 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'MyLife';
-const VERSION = 8;
-const ACTIVITIES_STORE_NAME = 'activities';
-const TODOS_STORE_NAME = 'todos';
-const MARKDOWNS_STORE_NAME = 'markdowns';
-const COLLECTIONS_STORE_NAME = 'collections';
-const ME_STORE_NAME = 'me';
+const VERSION = 1;
+const ACTIVITIES_STORE_NAME = 'activity';
+const TODOS_STORE_NAME = 'todo';
+const MARKDOWNS_STORE_NAME = 'note';
+const COLLECTIONS_STORE_NAME = 'collection';
+const ME_STORE_NAME = 'user';
 
+/**
+ * 数据库初始化
+ * @returns {Promise<IDBPDatabase<unknown>>}
+ */
 export const initDB = async () => {
   const db = await openDB(DB_NAME, VERSION, {
     upgrade(db) {
-      if (!db.objectStoreNames.contains(ACTIVITIES_STORE_NAME)) {
-        db.createObjectStore(ACTIVITIES_STORE_NAME, { keyPath: 'date' });
-      }
-      if (!db.objectStoreNames.contains(TODOS_STORE_NAME)) {
-        const store = db.createObjectStore(TODOS_STORE_NAME, { keyPath: 'text' });
-        store.createIndex('order', 'order', { unique: false });
-      }
-      if (!db.objectStoreNames.contains(MARKDOWNS_STORE_NAME)) {
-        db.createObjectStore(MARKDOWNS_STORE_NAME, { keyPath: 'key' });
-      }
+      /**
+       * user
+       * activity n->1 todo
+       * todo n->1 collection
+       * note (可关联) n->n todo collection
+       */
+      // user 表
       if (!db.objectStoreNames.contains(ME_STORE_NAME)) {
-        db.createObjectStore(ME_STORE_NAME, { keyPath: 'key' });
+        const store = db.createObjectStore(ME_STORE_NAME, {
+          keyPath: 'id',
+          autoIncrement: true
+        });
+        
+        store.createIndex('motto', 'motto', { unique: false });
+        store.createIndex('constellation', 'constellation', { unique: false });
+        store.createIndex('theme', 'theme', { unique: false });
       }
+
+      // activity 活动表
+      if (!db.objectStoreNames.contains(ACTIVITIES_STORE_NAME)) {
+        const store = db.createObjectStore(
+          ACTIVITIES_STORE_NAME, {
+            keyPath: 'id',
+            autoIncrement: true
+          });
+
+        store.createIndex('todoId', 'todoId', { unique: false });
+      }
+
+      // todo表
+      if (!db.objectStoreNames.contains(TODOS_STORE_NAME)) {
+        const store = db.createObjectStore(TODOS_STORE_NAME, {
+          keyPath: 'id',
+          autoIncrement: true
+        });
+
+        store.createIndex('name', 'name', { unique: true });
+        store.createIndex('order', 'order', { unique: true });
+        store.createIndex('collectionId', 'collectionId', { unique: false });
+      }
+
+      // collection 表
       if (!db.objectStoreNames.contains(COLLECTIONS_STORE_NAME)) {
-        const store = db.createObjectStore(COLLECTIONS_STORE_NAME, { keyPath: 'name' });
-        store.createIndex('order', 'order', { unique: false });
+        const store = db.createObjectStore(COLLECTIONS_STORE_NAME, {
+          keyPath: 'id',
+          autoIncrement: true
+        });
+
+        store.createIndex('name', 'name', { unique: true });
+        store.createIndex('order', 'order', { unique: true });
+      }
+
+      // note 表
+      if (!db.objectStoreNames.contains(MARKDOWNS_STORE_NAME)) {
+        const store = db.createObjectStore(MARKDOWNS_STORE_NAME, {
+          keyPath: 'id',
+          autoIncrement: true
+        });
+        
+        store.createIndex('title', 'title', { unique: true });
+        store.createIndex('todoId', 'todoId', { unique: false });
+        store.createIndex('collectionId', 'collectionId', { unique: false });
       }
     }
   });
   return db;
 };
 
+/**
+ * 导出数据
+ * @returns {Promise<{}>}
+ */
 export async function exportIndexedDB() {
   const db = await initDB();
   const exportData = {};
@@ -56,6 +110,11 @@ export async function exportIndexedDB() {
   return exportData;
 }
 
+/**
+ * 导入数据
+ * @param importData
+ * @returns {Promise<void>}
+ */
 export async function importIndexedDB(importData) {
   const db = await initDB();
 

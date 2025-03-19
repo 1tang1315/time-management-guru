@@ -6,7 +6,6 @@ import 'echarts/lib/chart/bar';
 import 'echarts/lib/chart/pie';
 import 'echarts/lib/component/tooltip';
 import 'echarts/lib/component/title';
-import { ref, onMounted, provide, toRaw, nextTick } from 'vue';
 
 echarts.use([
   CanvasRenderer,

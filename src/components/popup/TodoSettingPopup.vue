@@ -1,7 +1,7 @@
 <template>
-  <div class="overlay" v-if="todoSettingPopup" @click.self="handleCancel">
+  <div class="overlay" @click.self="handleCancel">
     <div class="todoSettingPopup">
-      <h4 class="title">{{ currentTodo.text }}</h4>
+      <h4 class="title">{{ currentTodo.name }}</h4>
       <div class="bottom">
           <div class="btn">
             <button class="add" @click="addTodoActivity">添加
@@ -20,7 +20,7 @@
           <div class="data">
             <dl>
               <dt>专注次数</dt>
-              <dd>{{ currentTodo.activities.length }}</dd>
+              <dd>{{ currentTodoActivity?.length }}</dd>
             </dl>
             <dl>
               <dt>总时长</dt>
@@ -37,23 +37,35 @@
 </template>
 
 <script setup>
-import { toRaw, computed, inject, ref } from 'vue';
+import { toRaw, computed, inject, ref, onMounted } from 'vue';
 import MoveToCollection from '@/components/popup/MoveToCollectionPopup.vue';
 
 import { todoData } from '@/hooks/todoData.js';
-const { currentTodo, todoSettingPopup } = todoData();
-const { updateTodoSettingPopupHandle, updateTodoActivityPopupHandle, getAllTododsHandle, updateTodoHandle, removeTodoByTextHandle, ChangeMoveToCollectionPopupHandle } = todoData();
+const { currentTodo } = todoData();
+const { updateTodoSettingPopupHandle, updateTodoActivityPopupHandle, ChangeMoveToCollectionPopupHandle } = todoData();
 
-import { collectionData } from '@/hooks/collectionData';
-const { getCollectionHandle, getAllCollectionsHandle, updateCollectionHandle, ChangeCurrentCollectionHandle } = collectionData();
 
-const props = defineProps(['todo']);
+import { TodoController } from "@/db/controller/TodoController.js";
+import { CollectionController } from "@/db/controller/CollectionController.js";
+
+const todoController = new TodoController();
+const collectionController = new CollectionController();
+
+const props = defineProps(['todo', 'todoId']);
+
 const updateTodos = inject('updateTodos');
 const updateCollections = inject('updateCollections');
 const collections = ref([]);
 
+const currentTodoActivity = ref([]);
+onMounted(async () => {
+  currentTodoActivity.value = await todoController.getTodoActivity(props.todoId);
+});
+
 const totalDuration = computed(() => {
-  const totalMinutes = currentTodo.value.activities.reduce((sum, activity) => sum + Number(activity.duration), 0);
+  if(currentTodoActivity.value.length <= 0) { return '0小时0分钟'; }
+  
+  const totalMinutes = currentTodoActivity.value.reduce((sum, activity) => sum + Number(activity.duration), 0);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${hours}小时${minutes}分钟`;
@@ -61,16 +73,12 @@ const totalDuration = computed(() => {
 
 const moveToCollection = async () => {
   ChangeMoveToCollectionPopupHandle(true);
-  collections.value = await getAllCollectionsHandle();
+  collections.value = await collectionController.getList();
 }
 const moveToTodos = async () => {
   const todo = toRaw(currentTodo.value);
-  const collection = await getCollectionHandle(todo.collection);
-  collection.todos = collection.todos.filter(item => item.text !== todo.text);
-  todo.collection = '';
-  await updateCollectionHandle(collection);
-  await updateTodoHandle(todo);
-  updateCollections();
+  todo.collectionId = '';
+  await todoController.update(todo);
 
   alert("移动成功");
   updateTodoSettingPopupHandle(false);
@@ -88,15 +96,9 @@ const addTodoActivity = () => {
 const deleteTodoHandler = async () => {
   if (window.confirm("你确定要删除这个项目吗？")) {
     // 处理彻底删除
-    if (currentTodo.value.collection) {
-      const collection = await getCollectionHandle(currentTodo.value.collection);
-      collection.todos = collection.todos.filter((todo) => todo.text !== currentTodo.value.text);
-      await updateCollectionHandle(collection);
-      updateCollections();
-    }
-    await removeTodoByTextHandle(currentTodo.value.text);
-    const newTodos = await getAllTododsHandle();
-    updateTodos(newTodos);
+    await todoController.deleteById(currentTodo.value.id);
+    const newTodos = await todoController.getList();
+    await updateTodos(newTodos);
     updateTodoSettingPopupHandle(false);
   }
 }
