@@ -16,7 +16,7 @@
         <i>{{ currentDate }}</i>
       </div>
       <div class="theme">
-        <button @click="changeTheme">
+        <button role="switch" @click="changeTheme">
           <span :key="isDarkTheme" :class="['iconfont', isDarkTheme ? 'icon-moon-fill' : 'icon-taiyang']"></span>
         </button>
       </div>

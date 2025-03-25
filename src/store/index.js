@@ -49,6 +49,7 @@ export const todoStore = defineStore('todoStoreId', {
     addTodoActivityPopup: false,
     todoSettingPopup: false,
     moveToCollectionPopup: false,
+    todoHabitPopup: false,
     currentTodo: {},
     timingPopup: false,
     isRunning: false,
@@ -68,6 +69,9 @@ export const todoStore = defineStore('todoStoreId', {
     },
     ChangeMoveToCollectionPopup(value) {
       this.moveToCollectionPopup = value;
+    },
+    ChangeTodoHabitPopup(value) {
+      this.todoHabitPopup = value;
     },
     ChangeCurrentTodo(obj) {
       this.currentTodo = obj;

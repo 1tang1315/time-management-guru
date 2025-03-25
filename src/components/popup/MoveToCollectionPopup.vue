@@ -11,34 +11,31 @@
 <script setup>
 import { toRaw, inject } from 'vue';
 import { todoData } from '@/hooks/todoData.js';
-const { currentTodo, moveToCollectionPopup } = todoData();
-const { updateTodoSettingPopupHandle, updateTodoHandle, ChangeMoveToCollectionPopupHandle } = todoData();
+import { TodoController } from "@/db/controller/TodoController.js";
 
-import { collectionData } from '@/hooks/collectionData';
-const { updateCollectionHandle, getCollectionHandle } = collectionData();
+const todoController = new TodoController();
+const { currentTodo, moveToCollectionPopup } = todoData();
+const {
+  updateTodoSettingPopupHandle,
+  ChangeMoveToCollectionPopupHandle
+} = todoData();
 
 const props = defineProps(['list']);
-const updateTodos = inject('updateTodos');
-const updateCollections = inject('updateCollections');
+const updateTodoList = inject('updateTodoList');
+const updateCollectionList = inject('updateCollectionList');
 
 // 移动到单项 或者 合集
 const handleMove = async (item) => {
   const todo = toRaw(currentTodo.value);
-  if (todo.collection) {
-    // 移动到其他合集
-    const collection = await getCollectionHandle(todo.collection);
-    collection.todos = collection.todos.filter(item => item.id !== todo.id);
-    await updateCollectionHandle(collection);
-  }
-  todo.collection = item.name;
-  item.todos.push(todo);
-  await updateTodoHandle(todo);
-  await updateCollectionHandle(toRaw(item));
+  todo.collectionId = item.id;
+
+  await todoController.update(todo);
+
   alert('移动成功!');
   ChangeMoveToCollectionPopupHandle(false);
   updateTodoSettingPopupHandle(false);
-  updateTodos();
-  updateCollections();
+  await updateTodoList();
+  await updateCollectionList();
 }
 const handleCancel = () => {
   ChangeMoveToCollectionPopupHandle(false);

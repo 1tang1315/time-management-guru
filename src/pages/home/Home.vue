@@ -6,7 +6,7 @@
       <div class="left">
         <h1 class="title">时间轴({{ currentDate }})</h1>
         
-        <div class="time-axis" v-if="dayData?.length !== 0">
+        <div class="time-axis" v-if="dayData?.length > 0">
           <div class="box">
             <ul id="first-list">
               <li v-for="item in dayData" :key="item.beginTime">
@@ -55,11 +55,33 @@
         <div class="pie-chart" ref="pieChartRef">
         </div>
       </div>
+      
       <div class="right">
         <Todo :page="page" />
       </div>
     </div>
-
+    
+    <div class="habit">
+      <el-table
+        :data="habitData"
+        border
+        fix
+      >
+        <el-table-column
+          prop="name"
+          label="名称"
+          align="center"
+        />
+        <el-table-column
+          v-for="(_, index) in Array.from({ length: daysInMonth })"
+          :prop="String(index + 1)"
+          :label="String(index + 1)"
+          align="center"
+          width="35"
+        />
+      </el-table>
+    </div>
+    
     <div class="chart">
       <div class="year" ref="YearLineChartRef"></div>
       <div class="month" ref="MonthLineChartRef"></div>
@@ -73,11 +95,13 @@ import Header from '@/components/Header.vue';
 import Todo from '../../components/Todo.vue';
 import { onMounted, ref, onUpdated, watch } from 'vue';
 import { useChart } from '@/hooks/useChart';
-const { echarts, PieInit, ChartInit, filterZeroData } = useChart();
 import moment from 'moment';
 import { ActivityController } from "@/db/controller/ActivityController.js";
+import { HabitActivityController } from "@/db/controller/HabitActivityController.js";
 
 const activityController = new ActivityController();
+const habitActivityController = new HabitActivityController();
+const { echarts, PieInit, ChartInit, filterZeroData } = useChart();
 
 const page = 'home';
 
@@ -133,7 +157,7 @@ function statistics(dataArray) {
 async function MonthStatistics(month) {
   let total = 0;
   const monthData = await activityController.getActivityByDate(month);
-
+  
   monthData?.forEach(item => {
     total += Number(item.duration);
   });
@@ -339,6 +363,55 @@ watch(() => currentDate.value.toString().split('-')[1], (newMonthValue) => {
 onUpdated(async () => {
   dayData.value = await activityController.getActivityByDate(currentDate.value);
 });
+
+const habitData = ref([]);
+const daysInMonth = ref(0);
+
+onMounted(async () => {
+  await fetchAndGroupHabitData(moment().format('YYYY-MM'));
+});
+
+const fetchAndGroupHabitData = async (date) => {
+  // 获取年月（格式：YYYY-MM）
+  const monthStr = moment(date).format('YYYY-MM');
+  
+  // 按月份获取习惯打卡数据
+  const habitActivityList = await habitActivityController.getHabitActivityByClockInTime(monthStr);
+  
+  const groupedData = {};
+  
+  // 获取该月的实际天数
+  daysInMonth.value = moment(date).daysInMonth();
+  
+  // 按 todoId 分组处理数据
+  habitActivityList?.forEach(item => {
+    if (!groupedData[item.todoId]) {
+      groupedData[item.todoId] = {
+        name: item.todoName,
+        // 初始化31天的数据为空
+        ...Object.fromEntries(Array.from({ length: daysInMonth.value }, (_, i) => [i + 1, '']))
+      };
+    }
+    
+    if (item.clockInTime) {
+      const day = new Date(item.clockInTime).getDate();
+      groupedData[item.todoId][day] = item.status === '成功' ? '✅' : '❌';
+    }
+  });
+  
+  habitData.value = Object.values(groupedData);
+};
+
+watch(() => currentDate.value, async (newVal, oldVal) => {
+  // 转换为 YYYY-MM 格式进行比较
+  const newYearMonth = moment(newVal).format('YYYY-MM');
+  const oldYearMonth = oldVal ? moment(oldVal).format('YYYY-MM') : '';
+  
+  // 当年或月变化时执行
+  if(newYearMonth !== oldYearMonth) {
+    await fetchAndGroupHabitData(newYearMonth);
+  }
+}, { immediate: false });
 </script>
 
 <style lang="scss" scoped>
@@ -550,6 +623,13 @@ onUpdated(async () => {
   }
 }
 
+.habit {
+  margin: 0 auto;
+  width: 90%;
+  height: 500px;
+  overflow: hidden;
+}
+
 .chart {
   margin-top: 20px;
   width: 100%;
@@ -560,7 +640,7 @@ onUpdated(async () => {
   .title {
     color: #fff;
   }
-
+  
   .year,
   .month,
   .season {

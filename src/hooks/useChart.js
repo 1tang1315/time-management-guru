@@ -1,17 +1,27 @@
 import * as echarts from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import { LegendComponent, GridComponent, DataZoomComponent } from 'echarts/components';
+import {
+  LegendComponent,
+  GridComponent,
+  DataZoomComponent,
+  VisualMapComponent,
+  CalendarComponent
+} from 'echarts/components';
 import 'echarts/lib/chart/line';
 import 'echarts/lib/chart/bar';
 import 'echarts/lib/chart/pie';
 import 'echarts/lib/component/tooltip';
 import 'echarts/lib/component/title';
+import { ScatterChart } from 'echarts/charts';
 
 echarts.use([
   CanvasRenderer,
   GridComponent,
   LegendComponent,
-  DataZoomComponent
+  DataZoomComponent,
+  ScatterChart,
+  VisualMapComponent,
+  CalendarComponent
 ]);
 
 export function useChart() {

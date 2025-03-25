@@ -2,19 +2,23 @@
   <div class="overlay" @click.self="handleCancel">
     <div class="todoSettingPopup">
       <h4 class="title">{{ currentTodo.name }}</h4>
-      <div class="bottom">
-          <div class="btn">
-            <button class="add" @click="addTodoActivity">添加
-            </button>
-            <button class="move">移动
-              <div class="dropdown">
-                <li @click="moveToCollection">移动到合集</li>
-                <li v-show="currentTodo.collection" @click="moveToTodos">移动到单项</li>
-                <li>与其他待办合并</li>
-              </div>
-            </button>
-            <button class="delete" @click="deleteTodoHandler">删除</button>
-          </div>
+      
+      <div class="content">
+        <div class="btn">
+          <button class="add" @click="addTodoActivity">添加
+          </button>
+          <button class="habit" @click="habitHandle">习惯打卡
+          </button>
+          <button class="move">移动
+            <div class="dropdown">
+              <li @click="moveToCollection">移动到合集</li>
+              <li v-show="currentTodo.collection" @click="moveToTodos">移动到单项</li>
+              <li>与其他待办合并</li>
+            </div>
+          </button>
+          <button class="delete" @click="deleteTodoHandler">删除</button>
+        </div>
+        
         <div class="totalData">
           <h4>累计数据</h4>
           <div class="data">
@@ -32,30 +36,39 @@
     </div>
   </div>
   <teleport to='body'>
-    <MoveToCollection :list="collections" />
+    <MoveToCollection :list="collectionList"/>
+  </teleport>
+  <teleport to='body'>
+    <div class="overlay" v-if="todoHabitPopup">
+      <HabitPopup v-if="todoHabitPopup"/>
+    </div>
   </teleport>
 </template>
 
 <script setup>
 import { toRaw, computed, inject, ref, onMounted } from 'vue';
 import MoveToCollection from '@/components/popup/MoveToCollectionPopup.vue';
-
-import { todoData } from '@/hooks/todoData.js';
-const { currentTodo } = todoData();
-const { updateTodoSettingPopupHandle, updateTodoActivityPopupHandle, ChangeMoveToCollectionPopupHandle } = todoData();
-
-
+import HabitPopup from "@/components/popup/TodoHabitPopup.vue";
 import { TodoController } from "@/db/controller/TodoController.js";
 import { CollectionController } from "@/db/controller/CollectionController.js";
+import { todoData } from '@/hooks/todoData.js';
+
+const {
+  currentTodo,
+  todoHabitPopup,
+  updateTodoSettingPopupHandle,
+  updateTodoActivityPopupHandle,
+  ChangeMoveToCollectionPopupHandle,
+  updateTodoHabitPopupHandle
+} = todoData();
 
 const todoController = new TodoController();
 const collectionController = new CollectionController();
 
 const props = defineProps(['todo', 'todoId']);
 
-const updateTodos = inject('updateTodos');
-const updateCollections = inject('updateCollections');
-const collections = ref([]);
+const updateTodoList = inject('updateTodoList');
+const collectionList = ref([]);
 
 const currentTodoActivity = ref([]);
 onMounted(async () => {
@@ -63,7 +76,9 @@ onMounted(async () => {
 });
 
 const totalDuration = computed(() => {
-  if(currentTodoActivity.value.length <= 0) { return '0小时0分钟'; }
+  if(currentTodoActivity.value.length <= 0) {
+    return '0小时0分钟';
+  }
   
   const totalMinutes = currentTodoActivity.value.reduce((sum, activity) => sum + Number(activity.duration), 0);
   const hours = Math.floor(totalMinutes / 60);
@@ -73,13 +88,13 @@ const totalDuration = computed(() => {
 
 const moveToCollection = async () => {
   ChangeMoveToCollectionPopupHandle(true);
-  collections.value = await collectionController.getList();
+  collectionList.value = await collectionController.getList();
 }
 const moveToTodos = async () => {
   const todo = toRaw(currentTodo.value);
   todo.collectionId = '';
   await todoController.update(todo);
-
+  
   alert("移动成功");
   updateTodoSettingPopupHandle(false);
 }
@@ -92,13 +107,17 @@ const addTodoActivity = () => {
   updateTodoActivityPopupHandle(true);
 }
 
+const habitHandle = () => {
+  updateTodoHabitPopupHandle(true);
+}
+
 // 彻底删除(删除todo 保留activities)
 const deleteTodoHandler = async () => {
-  if (window.confirm("你确定要删除这个项目吗？")) {
+  if(window.confirm("你确定要删除这个项目吗？")) {
     // 处理彻底删除
     await todoController.deleteById(currentTodo.value.id);
     const newTodos = await todoController.getList();
-    await updateTodos(newTodos);
+    await updateTodoList(newTodos);
     updateTodoSettingPopupHandle(false);
   }
 }
@@ -128,131 +147,111 @@ const deleteTodoHandler = async () => {
   padding: 5px 10px;
   border-radius: 10px;
   background-color: #60abc2;
-
+  
   .title {
     margin: 15px 0;
     text-align: center;
   }
-
-  .bottom {
+  
+  .content {
     padding: 10px;
     border-radius: 10px;
     background-color: #ddd;
-  }
-
-  .btn {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px;
-    border-radius: 10px;
-    background-color: #60abc2;
-
-    button {
-      position: relative;
-      width: 100px;
-      height: 35px;
-      line-height: 35px;
-      margin: 0 5px;
-      color: aqua;
-      background-color: #abcad5;
-      text-align: center;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .move {
-      position: relative;
-
-      &:hover .dropdown {
-        display: block;
-      }
-
-      .dropdown {
-        display: none;
-        position: absolute;
-        left: 109px;
-        top: -35px;
-        width: 180px;
-        border-radius: 10px;
-        color: #000;
-        background-color: #fff;
-        z-index: 100;
-
-        &::before {
-          content: "";
-          position: absolute;
-          top: 50%;
-          left: -9px;
-          transform: translateY(-50%);
-          border-width: 10px 10px 10px 0;
-          border-style: solid;
-          border-color: transparent #fff transparent transparent;
-        }
-
-        li {
-          margin: 5px 2px;
-          &:not(:last-child) {
-            border-bottom: 1px solid #b0bbbe;
-          }
-
-          &:hover {
-            background-color: #60abc2;
-          }
-        }
-      }
-    }
-
-    .delete {
-      color: red;
-      background-color: #d6bfbf;
-    }
-
-  }
-
-  .detailData {
-    width: 100%;
-    margin-top: 10px;
-    display: flex;
-    justify-content: space-around;
-
-    button {
-      position: relative;
-      width: 190px;
-      height: 35px;
-      line-height: 35px;
-      margin: 0 5px;
-      color: aqua;
-      background-color: #abcad5;
-      text-align: center;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-  }
-
-  .totalData {
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 10px;
-    background-color: #60abc2;
-
-    h4 {
-      margin: 0;
-    }
-
-    .data {
+    
+    .btn {
       display: flex;
-      justify-content: space-around;
-      text-align: center;
-
-      dl {
-        width: 40%;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border-radius: 10px;
+      background-color: #60abc2;
+      
+      button {
+        position: relative;
+        width: 100px;
+        height: 35px;
+        line-height: 35px;
+        margin: 0 5px;
+        color: aqua;
+        background-color: #abcad5;
+        text-align: center;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      
+      .move {
+        position: relative;
+        
+        &:hover .dropdown {
+          display: block;
+        }
+        
+        .dropdown {
+          display: none;
+          position: absolute;
+          left: 109px;
+          top: -35px;
+          width: 180px;
+          border-radius: 10px;
+          color: #000;
+          background-color: #fff;
+          z-index: 100;
+          
+          &::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: -9px;
+            transform: translateY(-50%);
+            border-width: 10px 10px 10px 0;
+            border-style: solid;
+            border-color: transparent #fff transparent transparent;
+          }
+          
+          li {
+            margin: 5px 2px;
+            
+            &:not(:last-child) {
+              border-bottom: 1px solid #b0bbbe;
+            }
+            
+            &:hover {
+              background-color: #60abc2;
+            }
+          }
+        }
+      }
+      
+      .delete {
+        color: red;
+        background-color: #d6bfbf;
+      }
+      
+    }
+    
+    .totalData {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background-color: #60abc2;
+      
+      h4 {
         margin: 0;
-
-        dd {
+      }
+      
+      .data {
+        display: flex;
+        justify-content: space-around;
+        text-align: center;
+        
+        dl {
+          width: 40%;
           margin: 0;
+          
+          dd {
+            margin: 0;
+          }
         }
       }
     }

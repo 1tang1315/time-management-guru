@@ -35,20 +35,23 @@
 <script setup>
 import moment from 'moment';
 import { toRaw, ref, onUnmounted, onMounted } from 'vue';
-import { todoData } from '@/hooks/todoData';
-const { currentTodo } = todoData();
-const { updateTimingPopupHandle } = todoData();
-
-import { timerWorkerData } from '@/hooks/timeWorkerData.js';
-const { seconds, minutes, isRunning } = timerWorkerData();
-const { ChangeIsRunningHandle, stopTimer, resetTimer, continueTimer, terminateWorkerHandle } = timerWorkerData();
-
+import { HabitActivityController } from "@/db/controller/HabitActivityController.js";
 import { Activity} from "@/db/model/Activity.js";
 import { TodoController } from "@/db/controller/TodoController.js";
 import { ActivityController } from "@/db/controller/ActivityController.js";
+import { HabitActivity } from "@/db/model/HabitActivity.js";
+import { timerWorkerData } from '@/hooks/timeWorkerData.js';
+import { todoData } from '@/hooks/todoData';
+
+const { currentTodo } = todoData();
+const { updateTimingPopupHandle } = todoData();
+
+const { seconds, minutes, isRunning } = timerWorkerData();
+const { ChangeIsRunningHandle, stopTimer, resetTimer, continueTimer, terminateWorkerHandle } = timerWorkerData();
 
 const todoController = new TodoController();
 const activityController = new ActivityController();
+const habitActivityController = new HabitActivityController();
 
 const endTime = ref('');
 const isTheEndPopup = ref(false);
@@ -97,6 +100,17 @@ const theEndConfirm = async () => {
     duration: minutes.value.toString(),
     experience: experience.value || '无'
   });
+  
+  if(currentTodo.value.isHabit) {
+    const habitActivity = new HabitActivity({
+      createTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+      todoId: currentTodo.value.id,
+      todoName: currentTodo.value.name,
+      clockInTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+      status: '成功'
+    });
+    await habitActivityController.update(habitActivity);
+  }
   
   currentTodo.value.isTiming = false;
   await todoController.update(toRaw(currentTodo.value));

@@ -1,12 +1,12 @@
 export class Collection {
   constructor({
-                name,
-                order,
-                isFolded = false,
-                completed = false,
-                createTime,
-                updateTime
-              }) {
+    name,
+    order,
+    isFolded = false,
+    completed = false,
+    createTime,
+    updateTime
+  }) {
     this.name = name;
     this.order = order;
     this.isFolded = isFolded;

@@ -27,16 +27,18 @@
 <script setup>
 import { ref } from 'vue';
 import moment from 'moment';
-
 import VueCtkDateTimePicker from 'vue-ctk-date-time-picker';
 import 'vue-ctk-date-time-picker/dist/vue-ctk-date-time-picker.css';
-
 import { todoData } from '@/hooks/todoData';
 import { Activity } from "@/db/model/Activity.js";
+import { ActivityController } from "@/db/controller/ActivityController.js";
+import { HabitActivityController } from "@/db/controller/HabitActivityController.js";
+import { HabitActivity } from "@/db/model/HabitActivity.js";
+
+const habitActivityController = new HabitActivityController();
 const { currentTodo } = todoData();
 const { updateTodoActivityPopupHandle, updateTodoSettingPopupHandle } = todoData();
 
-import { ActivityController } from "@/db/controller/ActivityController.js";
 const activityController = new ActivityController();
 
 const beginTime = ref(moment().format('YYYY-MM-DD HH:mm'))
@@ -62,6 +64,17 @@ const addActivityConfirm = async () => {
 
   // 将该专注添如activities数据库
   await activityController.update(activityObject);
+  
+  if(currentTodo.value.isHabit) {
+    const habitActivity = new HabitActivity({
+      createTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+      todoId: currentTodo.value.id,
+      todoName: currentTodo.value.name,
+      clockInTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+      status: '成功'
+    });
+    await habitActivityController.update(habitActivity);
+  }
   
   alert("记录添加成功");
   updateTodoActivityPopupHandle(false);

@@ -1,25 +1,27 @@
 <template>
   <div class="addCollectionTodoPopup">
     <h4 class="title">{{ currentCollection.name }}</h4>
-    <input type="text" v-model="collectionTodoName" placeholder="请输入任务项名称"
-           @keyup.enter="addCollectionHandlerTodoInput">
-    <button class="cancle" @click="addCollectionHandlerTodoCancel">X</button>
+    <input type="text"
+           v-model="collectionTodoName"
+           placeholder="请输入任务项名称"
+           @keyup.enter="addCollectionHandlerTodoInput"
+    />
+    <button class="cancel" @click="addCollectionHandlerTodoCancel">X</button>
   </div>
 </template>
 
 <script setup>
-import { ref, inject, onMounted } from 'vue';
-import { collectionData } from '@/hooks/collectionData.js'
+import { ref, inject } from 'vue';
+import { collectionData } from '@/hooks/collectionData.js';
+import { Todo } from "@/db/model/Todo.js";
+import { TodoController } from "@/db/controller/TodoController.js";
 
 const {
   updateCollectionTodoPopupHandle,
 } = collectionData();
 
 const collectionTodoName = ref('');
-const updateCollections = inject('updateCollections');
-
-import { TodoController } from "@/db/controller/TodoController.js";
-import { Todo } from "@/db/model/Todo.js";
+const updateCollectionList = inject('updateCollectionList');
 
 const todoController = new TodoController();
 
@@ -57,7 +59,7 @@ const addCollectionHandlerTodoInput = async () => {
   collectionTodoName.value = '';
   alert("操作成功!");
   updateCollectionTodoPopupHandle(false);
-  await updateCollections();
+  await updateCollectionList();
 }
 
 const addCollectionHandlerTodoCancel = () => {
@@ -88,7 +90,7 @@ const addCollectionHandlerTodoCancel = () => {
     border-radius: 5px;
   }
   
-  .cancle {
+  .cancel {
     position: absolute;
     top: -10px;
     right: -10px;
