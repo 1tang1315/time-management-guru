@@ -36,6 +36,42 @@
     
     <div class="contain">
       <h3 class="title">数据</h3>
+      <ul class="remote">
+        <li>
+          <h4>坚果云盘</h4>
+          <el-form
+            ref="janguoFormRef"
+            style="max-width: 200px"
+            :model="janguoForm"
+            :rules="janguoFormRule"
+            label-width="auto"
+            class="demo-ruleForm"
+            status-icon
+          >
+            <el-form-item label="账号" prop="username">
+              <el-input
+                v-model="janguoForm.username"
+                placeholder="请输入账号"
+              />
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+              <el-input
+                v-model="janguoForm.password"
+                type="password"
+                show-password
+                placeholder="请输入密码"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="submitJanguoForm(janguoFormRef)">
+                绑定
+              </el-button>
+              <el-button @click="resetJanguoForm(janguoFormRef)">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </li>
+      </ul>
+      
       <ul class="data">
         <li @click="dataExportHandle">
           <span class="iconfont icon-xiazai"></span>
@@ -88,14 +124,20 @@
 </template>
 
 <script setup>
+import { onMounted, ref, computed, toRaw } from 'vue';
 import Header from '@/components/Header.vue';
 import { ElMessage, ElMessageBox } from "element-plus";
-import { onMounted, ref, computed, toRaw } from 'vue';
 import { exportIndexedDB, importIndexedDB } from '@/db/initDB.js';
 import { initStore } from '@/store/index.js';
 import { storeToRefs } from 'pinia';
 import { UserController } from "@/db/controller/UserController.js";
-import { uploadFile, downloadFile, incrementSync } from '@/utils/webdavClient';
+import {
+  getClient,
+  initClient,
+  uploadFile,
+  downloadFile,
+  incrementSync,
+} from '@/utils/webdavClient';
 
 const userController = new UserController();
 const store = initStore();
@@ -252,6 +294,59 @@ const isCollectHandle = () => {
 }
 
 // 数据
+const janguoFormRef = ref(null);
+const janguoForm = ref({
+  username: user.value.remote?.jianguo.username ?? '',
+  password: user.value.remote?.jianguo.password ?? ''
+});
+const janguoFormRule = ref({
+  username: [
+    { required: true, message: '请输入账号信息', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入应用密码', trigger: 'blur' }
+  ]
+});
+
+onMounted(async () => {
+  setTimeout(() => {
+    getClient(janguoForm.value.username, janguoForm.value.password);
+  }, 0);
+});
+const submitJanguoForm = (formEl) => {
+  if (!formEl) {
+    return;
+  }
+  
+  formEl.validate(async (valid) => {
+    if(valid) {
+      try {
+        await initClient(janguoForm.value.username, janguoForm.value.password);
+        
+        user.value.remote ??= {};
+        user.value.remote.janguo ??= {};
+        
+        user.value['remote']['janguo'].username = janguoForm.value.username;
+        user.value['remote']['janguo'].password = janguoForm.value.password;
+        
+        await userController.update(toRaw(user.value));
+        ElMessage.success('绑定成功');
+      } catch(error) {
+        ElMessage.error('绑定失败');
+        console.log(error);
+      }
+    }
+  });
+}
+
+const resetJanguoForm = (formEl) => {
+  if (!formEl) {
+    return;
+  }
+  
+  formEl.resetFields();
+}
+
 // 导出整个indexdb数据库的数据
 const dataExportHandle = async () => {
   try {

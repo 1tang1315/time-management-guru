@@ -7,6 +7,7 @@ export class User {
     motto = [],
     theme,
     title,
+    remote, // 远程服务 坚果云盘/百度网盘等 文件同步配置 { jianguo: { username, password }, baidu: {...} }
     createTime,
     updateTime
   }) {
@@ -17,6 +18,7 @@ export class User {
     this.motto = motto; // 座右铭
     this.theme = theme;
     this.title = title;
+    this.remote = remote;
     this.createTime = createTime;
     this.updateTime = updateTime;
   }
