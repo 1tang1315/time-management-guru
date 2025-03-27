@@ -129,9 +129,20 @@ export async function exportIndexedDB() {
  */
 export async function importIndexedDB(importData) {
   const db = await initDB();
-
-  const storeNames = Object.keys(importData);
-
+  
+  let data;
+  if (typeof importData === 'string') {
+    try {
+      data = JSON.parse(importData); // 尝试解析 JSON
+    } catch (e) {
+      throw new Error('importData 不是有效的 JSON 字符串！');
+    }
+  } else {
+    data = importData; // 已经是对象，直接使用
+  }
+  
+  const storeNames = Object.keys(data); // 获取存储表名称
+  
   for (let i = 0; i < storeNames.length; i++) {
     const storeName = storeNames[i];
     const tx = db.transaction(storeName, 'readwrite');
@@ -141,7 +152,7 @@ export async function importIndexedDB(importData) {
     await store.clear();
 
     // 导入新数据
-    const items = importData[storeName];
+    const items = data[storeName];
     for (let j = 0; j < items.length; j++) {
       await store.put(items[j]);
     }

@@ -1,13 +1,30 @@
 import { createClient } from 'webdav';
 import { exportIndexedDB, importIndexedDB } from "@/db/initDB.js";
 
-const client = createClient(
-  '/jianguoyunApi',
-  {
-    username: '211422328@qq.com',
-    password: 'a8ns38yumq2g39rm',
+let client;
+
+export const getClient = (username, password) => {
+  if (!client) {
+    client = createClient(
+      '/jianguoyunApi',
+      {
+        username: username || '',
+        password: password || '',
+      }
+    );
   }
-);
+  return client;
+};
+
+export const initClient = async (username, password) => {
+  client = createClient('/jianguoyunApi', {
+    username,
+    password
+  });
+  
+  // 尝试列出根目录来测试连接
+  await client.getDirectoryContents('/');
+}
 
 /**
  * 文件上传
