@@ -33,6 +33,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, toRaw } from 'vue';
+import { ElMessage } from "element-plus";
 import { useRouter } from 'vue-router';
 import { initStore } from '@/store/index.js';
 import { storeToRefs } from 'pinia';
@@ -87,6 +88,7 @@ onMounted(() => {
   document.documentElement.classList.toggle('dark-theme', isDarkTheme.value);
   document.documentElement.classList.toggle('light-theme', !isDarkTheme.value);
 });
+
 const changeTheme = () => {
   store.ChangeIsDarkTheme();
   document.documentElement.classList.toggle('dark-theme', isDarkTheme.value);
@@ -105,6 +107,7 @@ const handleIsEditing = () => {
     });
   }
 }
+
 const changeMotto = async () => {
   isEditing.value = false;
 
@@ -118,10 +121,10 @@ const handelIncrementSync = async () => {
   
   try {
     await incrementSync();
-    alert('数据同步成功');
+    ElMessage.success('数据同步成功');
   } catch(e) {
     console.log(e);
-    alert('数据同步失败');
+    ElMessage.error('数据同步失败');
   }
   
   isIncrementSync.value = false;

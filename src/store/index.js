@@ -1,19 +1,13 @@
 import { defineStore } from 'pinia';
-import { UserController } from "@/db/controller/UserController.js";
-
 
 // storeId 浏览器插件 与之关联 必填
 export const initStore = defineStore('initStoreId', {
   state: () => ({
-    NavActiveIndex: sessionStorage.getItem('NavActiveIndex') ? parseInt(sessionStorage.getItem('NavActiveIndex')) : 0,
-    isDarkTheme: localStorage.getItem('isDarkTheme') !== null
-      ? localStorage.getItem('isDarkTheme') === 'true'
-      : true,
+    NavActiveIndex: sessionStorage.getItem('NavActiveIndex')
+      ? parseInt(sessionStorage.getItem('NavActiveIndex')) : 0,
+    isDarkTheme: localStorage.getItem('isDarkTheme') === 'true',
     user: {}
   }),
-  getters: { // getters 类似计算属性 返回新的属性
-    // doubleCount: (state) => state.count * 2,
-  },
   actions: { // actions 直接修改数据
     ChangeNavActiveIndex(value) {
       this.NavActiveIndex = value;

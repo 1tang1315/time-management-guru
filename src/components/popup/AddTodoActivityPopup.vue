@@ -2,14 +2,16 @@
   <div class="addActivityPopup">
     <h4 class="title">{{ currentTodo.name }}</h4>
     <div class="time">
-      <div class="beginTime">
-        <VueCtkDateTimePicker v-model="beginTime" label="请选择开始时间" locale="zh-cn" format="YYYY-MM-DD HH:mm" auto-close
-          id="开始时间" />
-      </div>
-      <div class="endTime">
-        <VueCtkDateTimePicker v-model="endTime" label="请选择结束时间" locale="zh-cn" format="YYYY-MM-DD HH:mm" auto-close
-          id="结束时间" />
-      </div>
+      <el-date-picker
+        v-model="timeRange"
+        type="datetimerange"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        format="YYYY-MM-DD HH:mm"
+        value-format="YYYY-MM-DD HH:mm"
+        range-separator="至"
+        @change="handleTimeConfig"
+      />
     </div>
     
     <div class="input">
@@ -26,9 +28,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import { ElMessage } from 'element-plus';
 import moment from 'moment';
-import VueCtkDateTimePicker from 'vue-ctk-date-time-picker';
-import 'vue-ctk-date-time-picker/dist/vue-ctk-date-time-picker.css';
 import { todoData } from '@/hooks/todoData';
 import { Activity } from "@/db/model/Activity.js";
 import { ActivityController } from "@/db/controller/ActivityController.js";
@@ -41,15 +42,31 @@ const { updateTodoActivityPopupHandle, updateTodoSettingPopupHandle } = todoData
 
 const activityController = new ActivityController();
 
+const timeRange = ref([]);
 const beginTime = ref(moment().format('YYYY-MM-DD HH:mm'))
 const endTime = ref(moment().format('YYYY-MM-DD HH:mm'))
 const experience = ref('');
+
+const handleTimeConfig = () => {
+  if (timeRange.value && timeRange.value.length === 2) {
+    beginTime.value = timeRange.value[0]; // 开始时间
+    endTime.value = timeRange.value[1];   // 结束时间
+  } else {
+    ElMessage({
+      message: '请选择完整的时间范围',
+      type: 'warning'
+    });
+  }
+}
 
 const addActivityConfirm = async () => {
   const duration = (new Date(endTime.value) - new Date(beginTime.value)) / (1000 * 60);
   
   if (duration < 1) {
-    alert("时间间隔不能小于一分钟, 不做记录");
+    ElMessage({
+      message: '时间间隔不能小于一分钟, 不做记录',
+      type: 'warning'
+    });
     return;
   }
   
@@ -76,7 +93,10 @@ const addActivityConfirm = async () => {
     await habitActivityController.update(habitActivity);
   }
   
-  alert("记录添加成功");
+  ElMessage({
+    message: '记录添加成功',
+    type: 'success'
+  });
   updateTodoActivityPopupHandle(false);
   updateTodoSettingPopupHandle(false);
 }
@@ -143,10 +163,9 @@ const addActivityCancel = () => {
   }
 
   .time {
-    .beginTime,
-    .endTime {
-      margin-bottom: 10px;
-    }
+    display: flex;
+    margin-bottom: 10px;
+    width: 100%;
   }
 }
 </style>

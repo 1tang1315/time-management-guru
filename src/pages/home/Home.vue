@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <Header />
+    <Header/>
     
     <div class="content">
       <div class="left">
@@ -11,19 +11,20 @@
             <ul id="first-list">
               <li v-for="item in dayData" :key="item.beginTime">
                 <div class="time">
-                  <span>{{ item.beginTime.split(' ')[1]}}</span>
-                  <span>{{ item.endTime.split(' ')[1]}}</span>
+                  <span>{{ item.beginTime.split(' ')[1] }}</span>
+                  <span>{{ item.endTime.split(' ')[1] }}</span>
                 </div>
                 <span></span>
                 <div class="content">
                   <div class="info">
                     <span>{{ item.todoName }}</span>
-                    <span>{{ item.duration / 60 >= 1 ? Math.floor(item.duration / 60) + '小时' + item.duration % 60 + '分钟' :
-                      item.duration + '分钟'
+                    <span>{{
+                        item.duration / 60 >= 1 ? Math.floor(item.duration / 60) + '小时' + item.duration % 60 + '分钟' :
+                          item.duration + '分钟'
                       }}</span>
                   </div>
                   
-                  <div>{{item.experience}}</div>
+                  <div>{{ item.experience }}</div>
                 </div>
               </li>
             </ul>
@@ -39,14 +40,15 @@
         <h1 class="title">{{ currentDateShow }}</h1>
         <div class="subtitle">
           <span>当{{ date }}专注次数: {{ count }}</span>
-          <span>当{{ date }}专注时长: {{ total / 60 >= 1 ? Math.floor(total / 60) + '小时' + total % 60 + '分钟' : total + '分钟'
-          }}</span>
+          <span>当{{ date }}专注时长: {{
+              total / 60 >= 1 ? Math.floor(total / 60) + '小时' + total % 60 + '分钟' : total + '分钟'
+            }}</span>
         </div>
         <nav class="change" @click="handlePieChange($event)">
           <button class="btn-left" @click="handleBtnLeft">&lt</button>
           <ul>
             <li v-for="(item, index) in ['日', '周', '月']" :key="item" :data-index='index'
-              :class="Number(PieActiveIndex) === index ? 'pie-active' : ''">
+                :class="Number(PieActiveIndex) === index ? 'pie-active' : ''">
               {{ item }}
             </li>
           </ul>
@@ -57,12 +59,13 @@
       </div>
       
       <div class="right">
-        <Todo :page="page" />
+        <Todo :page="page"/>
       </div>
     </div>
     
     <div class="habit">
       <el-table
+        max-height="200"
         :data="habitData"
         border
         fix
@@ -135,11 +138,11 @@ function statistics(dataArray) {
   dataArray?.forEach(item => {
     count.value++;
     total.value += Number(item.duration);
-
+    
     // 查找 pieData 中是否已经存在具有相同 name 的项
     let existingItem = pieData.find(pieItem => pieItem.name === item.todoName);
-
-    if (existingItem) {
+    
+    if(existingItem) {
       // 如果存在，则将 duration 添加到现有的项上
       existingItem.value += Number(item.duration);
     } else {
@@ -170,19 +173,19 @@ function getWeekDetails(date) {
   const mDate = moment(date, 'YYYY-MM-DD');
   // 计算本周的开始日期（星期日）
   const startDate = mDate.clone().startOf('week'); // 默认从星期日开始
-
+  
   // 计算本周的结束日期（星期六）
   const endDate = mDate.clone().endOf('week');
-
+  
   // 格式化日期为 YYYY-MM-DD 格式
   const format = 'YYYY-MM-DD';
   const startDateFormatted = startDate.format(format);
   const endDateFormatted = endDate.format(format);
-
+  
   // 计算本月的第几周
   const startOfMonth = mDate.clone().startOf('month');
   const weekOfMonth = mDate.diff(startOfMonth, 'weeks') + 1;
-
+  
   return {
     weekOfMonth,
     startDate: startDateFormatted,
@@ -192,117 +195,117 @@ function getWeekDetails(date) {
 
 onMounted(async () => {
   dayData.value = await activityController.getActivityByDate(currentDate.value);
-
+  
   const pieData = statistics(dayData.value);
-
+  
   // 图表初始化
   pieChart.value = echarts.init(pieChartRef.value);
   YearLineChart.value = echarts.init(YearLineChartRef.value);
   MonthLineChart.value = echarts.init(MonthLineChartRef.value);
   SeasonLineChart.value = echarts.init(SeasonLineChartRef.value);
-
+  
   const year = currentDate.value.toString().split('-')[0];
   const month = currentDate.value.toString().split('-')[1];
   await upDateYearLineAndSessionsLine(year);
-
+  
   await upDateMonthLine(year, month);
-
+  
   PieInit(pieChart.value, currentDateShow.value, pieData);
 });
 
 const handlePieChange = async (e) => {
   const target = e.target; // 获取被点击的元素
-  if (target.tagName === 'LI') {
+  if(target.tagName === 'LI') {
     PieActiveIndex.value = target.getAttribute('data-index');
-    if (target.textContent === '日') {
+    if(target.textContent === '日') {
       date.value = '日';
       const pieData = statistics(await activityController.getActivityByDate(currentDate.value));
       PieInit(pieChart.value, currentDateShow.value, pieData)
-    } else if (target.textContent === '周') {
+    } else if(target.textContent === '周') {
       date.value = '周';
       const weekDetails = getWeekDetails(currentDate.value);
-
+      
       const text = `${currentDateShow.value.toString().slice(0, -3)} 第${weekDetails.weekOfMonth}周 ${weekDetails.startDate.split('-')[1] + '-' + weekDetails.startDate.split('-')[2]}~${weekDetails.endDate.split('-')[1] + '-' + weekDetails.endDate.split('-')[2]}`;
       let weekData = [];
-      for (let i = 0; i < 7; i++) {
+      for(let i = 0; i < 7; i++) {
         const date = String(weekDetails.startDate.split('-')[0]) + '-' + String(weekDetails.startDate.split('-')[1]) + '-' + String(Number(weekDetails.startDate.split('-')[2]) + Number(i)).padStart(2, '0');
-
+        
         weekData.push(await activityController.getActivityByDate(date));
       }
       weekData = statistics(weekData.flat(1));
-
+      
       PieInit(pieChart.value, text, weekData)
-    } else if (target.textContent === '月') {
+    } else if(target.textContent === '月') {
       date.value = '月';
       const text = currentDateShow.value.toString().slice(0, -3);
       const data = await activityController.getActivityByDate(currentDate.value.toString().slice(0, -3));
       const monthData = statistics(data);
-
+      
       PieInit(pieChart.value, text, monthData)
     }
   }
 }
 
 const handleBtnLeft = async () => {
-  if (date.value === '日') {
+  if(date.value === '日') {
     currentDate.value = moment(currentDate.value).subtract(1, 'days').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const pieData = statistics(await activityController.getActivityByDate(currentDate.value));
     PieInit(pieChart.value, currentDateShow.value, pieData)
-  } else if (date.value === '周') {
+  } else if(date.value === '周') {
     currentDate.value = moment(currentDate.value).subtract(1, 'week').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const weekDetails = getWeekDetails(currentDate.value);
-
+    
     const text = `${currentDateShow.value.toString().slice(0, -3)} 第${weekDetails.weekOfMonth}周 ${weekDetails.startDate.split('-')[1] + '-' + weekDetails.startDate.split('-')[2]}~${weekDetails.endDate.split('-')[1] + '-' + weekDetails.endDate.split('-')[2]}`;
     let weekData = [];
-    for (let i = 0; i < 7; i++) {
+    for(let i = 0; i < 7; i++) {
       const date = String(weekDetails.startDate.split('-')[0]) + '-' + String(weekDetails.startDate.split('-')[1]) + '-' + String(Number(weekDetails.startDate.split('-')[2]) + Number(i)).padStart(2, '0');
-
+      
       weekData.push(await activityController.getActivityByDate(date));
     }
     weekData = statistics(weekData.flat(1));
-
+    
     PieInit(pieChart.value, text, weekData)
-  } else if (date.value === '月') {
+  } else if(date.value === '月') {
     currentDate.value = moment(currentDate.value).subtract(1, 'month').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const text = currentDateShow.value.toString().slice(0, -3);
     const data = await activityController.getActivityByDate(currentDate.value.toString().slice(0, -3));
     const monthData = statistics(data);
-
+    
     PieInit(pieChart.value, text, monthData)
   }
 }
 const handleBtnRight = async () => {
-  if (date.value === '日') {
+  if(date.value === '日') {
     currentDate.value = moment(currentDate.value).add(1, 'days').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const pieData = statistics(await activityController.getActivityByDate(currentDate.value));
     PieInit(pieChart.value, currentDateShow.value, pieData)
-  } else if (date.value === '周') {
+  } else if(date.value === '周') {
     currentDate.value = moment(currentDate.value).add(1, 'week').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const weekDetails = getWeekDetails(currentDate.value);
-
+    
     const text = `${currentDateShow.value.toString().slice(0, -3)} 第${weekDetails.weekOfMonth}周 ${weekDetails.startDate.split('-')[1] + '-' + weekDetails.startDate.split('-')[2]}~${weekDetails.endDate.split('-')[1] + '-' + weekDetails.endDate.split('-')[2]}`;
     let weekData = [];
-    for (let i = 0; i < 7; i++) {
+    for(let i = 0; i < 7; i++) {
       const date = String(weekDetails.startDate.split('-')[0]) + '-' + String(weekDetails.startDate.split('-')[1]) + '-' + String(Number(weekDetails.startDate.split('-')[2]) + Number(i)).padStart(2, '0');
-
+      
       weekData.push(await activityController.getActivityByDate(date));
     }
     weekData = statistics(weekData.flat(1));
-
+    
     PieInit(pieChart.value, text, weekData)
-  } else if (date.value === '月') {
+  } else if(date.value === '月') {
     currentDate.value = moment(currentDate.value).add(1, 'month').format('YYYY-MM-DD');
     currentDateShow.value = moment(currentDate.value).format('YYYY年MM月DD日');
     const text = currentDateShow.value.toString().slice(0, -3);
     const data = await activityController.getActivityByDate(currentDate.value.toString().slice(0, -3));
     const monthData = statistics(data);
-
-    PieInit(pieChart.value,text, monthData)
+    
+    PieInit(pieChart.value, text, monthData)
   }
 }
 
@@ -310,55 +313,65 @@ const upDateYearLineAndSessionsLine = async (year) => {
   const lineYearData = [];
   const lineYearName = []; // 如: 2024-01
   const lineSessionData = [0, 0, 0, 0];
-
+  
   // 年和季节
-  for (let month = 1; month < 13; month++) {
+  for(let month = 1; month < 13; month++) {
     const date = year + '-' + month.toString().padStart(2, '0');
     lineYearName.push(date);
     lineYearData.push(await MonthStatistics(date))
-    if (month === 3 || month === 4 || month === 5) {
+    if(month === 3 || month === 4 || month === 5) {
       lineSessionData[0] += Number(await MonthStatistics(date));
-    } else if (month === 6 || month === 7 || month === 8) {
+    } else if(month === 6 || month === 7 || month === 8) {
       lineSessionData[1] += Number(await MonthStatistics(date));
-    } else if (month === 9 || month === 10 || month === 11) {
+    } else if(month === 9 || month === 10 || month === 11) {
       lineSessionData[2] += Number(await MonthStatistics(date));
-    } else if (month === 12 || month === 1 || month === 2) {
+    } else if(month === 12 || month === 1 || month === 2) {
       lineSessionData[3] += Number(await MonthStatistics(date));
     }
   }
-
-
+  
+  
   const { xData: yearXData, yData: yearYData } = filterZeroData(lineYearName, lineYearData);
   ChartInit(YearLineChart.value, 'line', `${year}年`, '年度专注时长分布', yearXData, yearYData);
-
-  const { xData: seasonXData, yData: seasonYData } = filterZeroData(['春(3,4,5)', '夏(6,7,8)', '秋(9,10,11)', '冬(12,1,2)'], lineSessionData);
+  
+  const {
+    xData: seasonXData,
+    yData: seasonYData
+  } = filterZeroData(['春(3,4,5)', '夏(6,7,8)', '秋(9,10,11)', '冬(12,1,2)'], lineSessionData);
   ChartInit(SeasonLineChart.value, 'line', '季度', '季度专注时长分布', seasonXData, seasonYData);
 }
-watch(() => currentDate.value.toString().split('-')[0], (newYearValue) => {
-  upDateYearLineAndSessionsLine(newYearValue);
-}, {
-  immediate: false,
-});
+watch(
+  () => currentDate.value.toString().split('-')[0],
+  (newYearValue) => {
+    upDateYearLineAndSessionsLine(newYearValue);
+  },
+  {
+    immediate: false,
+  }
+);
 
 const upDateMonthLine = async (year, month) => {
   const lineMonthData = [];
   const lineMonthName = []; // 如: 01
-
-  for (let day = 1; day < 32; day++) {
+  
+  for(let day = 1; day < 32; day++) {
     const date = year + '-' + month + '-' + day.toString().padStart(2, '0');
     lineMonthName.push(day + '日');
     lineMonthData.push(await MonthStatistics(date))
   }
-
-  const { xData: monthXData, yData: monthYData } = filterZeroData(lineMonthName, lineMonthData);  
+  
+  const { xData: monthXData, yData: monthYData } = filterZeroData(lineMonthName, lineMonthData);
   ChartInit(MonthLineChart.value, 'line', `${month}月`, '月度专注时长分布', monthXData, monthYData);
 }
-watch(() => currentDate.value.toString().split('-')[1], (newMonthValue) => {
-  const year = currentDate.value.toString().split('-')[0];
-  upDateMonthLine(year, newMonthValue);
-}, {
-  immediate: false,
-});
+watch(
+  () => currentDate.value.toString().split('-')[1],
+  (newMonthValue) => {
+    const year = currentDate.value.toString().split('-')[0];
+    upDateMonthLine(year, newMonthValue);
+  }, {
+    immediate: false,
+  }
+);
 
 onUpdated(async () => {
   dayData.value = await activityController.getActivityByDate(currentDate.value);
@@ -385,7 +398,7 @@ const fetchAndGroupHabitData = async (date) => {
   
   // 按 todoId 分组处理数据
   habitActivityList?.forEach(item => {
-    if (!groupedData[item.todoId]) {
+    if(!groupedData[item.todoId]) {
       groupedData[item.todoId] = {
         name: item.todoName,
         // 初始化31天的数据为空
@@ -393,7 +406,7 @@ const fetchAndGroupHabitData = async (date) => {
       };
     }
     
-    if (item.clockInTime) {
+    if(item.clockInTime) {
       const day = new Date(item.clockInTime).getDate();
       groupedData[item.todoId][day] = item.status === '成功' ? '✅' : '❌';
     }
@@ -402,16 +415,21 @@ const fetchAndGroupHabitData = async (date) => {
   habitData.value = Object.values(groupedData);
 };
 
-watch(() => currentDate.value, async (newVal, oldVal) => {
-  // 转换为 YYYY-MM 格式进行比较
-  const newYearMonth = moment(newVal).format('YYYY-MM');
-  const oldYearMonth = oldVal ? moment(oldVal).format('YYYY-MM') : '';
-  
-  // 当年或月变化时执行
-  if(newYearMonth !== oldYearMonth) {
-    await fetchAndGroupHabitData(newYearMonth);
+watch(
+  () => currentDate.value,
+  async (newVal, oldVal) => {
+    // 转换为 YYYY-MM 格式进行比较
+    const newYearMonth = moment(newVal).format('YYYY-MM');
+    const oldYearMonth = oldVal ? moment(oldVal).format('YYYY-MM') : '';
+    
+    // 当年或月变化时执行
+    if(newYearMonth !== oldYearMonth) {
+      await fetchAndGroupHabitData(newYearMonth);
+    }
+  }, {
+    immediate: false
   }
-}, { immediate: false });
+);
 </script>
 
 <style lang="scss" scoped>
@@ -430,36 +448,36 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
 .content {
   display: flex;
   justify-content: space-around;
-
+  
   .title {
     text-align: center;
     font-size: 20px;
   }
-
+  
   .center {
     width: 33%;
     height: 450px;
     background-color: var(--background-color);
-
+    
     .subtitle {
       display: flex;
       justify-content: space-between;
       margin-bottom: 10px;
-
+      
       span {
         padding: 2px 5px;
       }
     }
-
+    
     .change {
       position: relative;
       margin-bottom: 10px;
-
+      
       ul {
         justify-content: center;
         display: flex;
       }
-
+      
       .btn-left,
       .btn-right {
         position: absolute;
@@ -469,17 +487,17 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
         cursor: pointer;
         z-index: 100;
       }
-
+      
       .btn-left {
         left: 85px;
         top: 36px;
       }
-
+      
       .btn-right {
         right: 85px;
         top: 36px;
       }
-
+      
       li {
         width: 40px;
         height: 20px;
@@ -489,35 +507,35 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
         border-top: 1px solid skyblue;
         border-bottom: 1px solid skyblue;
         cursor: pointer;
-
+        
         &:hover {
           background-color: #666;
         }
       }
-
+      
       li:first-child {
         border-left: 2px solid skyblue;
         border-radius: 15px 0 0 15px;
       }
-
+      
       li:last-child {
         border-right: 2px solid skyblue;
         border-radius: 0 15px 15px 0;
       }
-
+      
     }
-
+    
     .pie-chart {
       width: 100%;
       height: 350px;
     }
   }
-
+  
   .left {
     width: 33%;
     height: 450px;
   }
-
+  
   .right {
     width: 33%;
     height: 450px;
@@ -531,7 +549,7 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     overflow: auto;
     padding: 10px 0 40px 60px
   }
-
+  
   .box ul {
     list-style-type: none;
     margin: 0;
@@ -540,7 +558,7 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     transition: all 0.5s linear;
     top: 0
   }
-
+  
   .box ul:before {
     content: "";
     display: block;
@@ -551,7 +569,7 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     top: 0;
     left: 30px
   }
-
+  
   .box ul li {
     margin: 0 0 35px 60px;
     position: relative;
@@ -562,9 +580,9 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     line-height: 20px;
     width: 66%;
   }
-
-
-  .box ul li>span {
+  
+  
+  .box ul li > span {
     content: "";
     display: block;
     width: 0;
@@ -574,9 +592,9 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     top: 0;
     left: -30px
   }
-
-  .box ul li>span:before,
-  .box ul li>span:after {
+  
+  .box ul li > span:before,
+  .box ul li > span:after {
     content: "";
     display: block;
     width: 10px;
@@ -587,15 +605,15 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     position: absolute;
     left: -7.5px
   }
-
-  .box ul li>span:before {
+  
+  .box ul li > span:before {
     top: -10px
   }
-
-  .box ul li>span:after {
+  
+  .box ul li > span:after {
     top: 95%
   }
-
+  
   .box ul li .content {
     display: block;
   }
@@ -605,7 +623,7 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     justify-content: space-between;
     margin-bottom: 5px;
   }
-
+  
   .box .time span {
     position: absolute;
     left: -100px;
@@ -613,30 +631,32 @@ watch(() => currentDate.value, async (newVal, oldVal) => {
     font-size: 80%;
     font-weight: bold;
   }
-
+  
   .box .time span:first-child {
     top: -16px
   }
-
+  
   .box .time span:last-child {
     top: 94%
   }
 }
 
 .habit {
-  margin: 0 auto;
+  margin: 20px auto;
   width: 90%;
-  height: 500px;
+  max-height: 200px;
+  color: var(--text-color);
+  border-radius: 10px;
+  background-color: var(--background-color);
   overflow: hidden;
 }
 
 .chart {
-  margin-top: 20px;
   width: 100%;
   height: 400px;
   display: flex;
   justify-content: space-between;
-
+  
   .title {
     color: #fff;
   }

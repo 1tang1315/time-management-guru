@@ -1,4 +1,4 @@
-import '@/assets/css/theme.css';
+import '@/assets/style/theme.css';
 import '@/assets/fonts/iconfont.css';
 import '@/assets/fonts/iconfont.js';
 import { createApp } from 'vue'
@@ -15,6 +15,7 @@ import '@kangc/v-md-editor/lib/theme/style/vuepress.css';
 import '@kangc/v-md-editor/lib/plugins/todo-list/todo-list.css';
 import ElementPlus from 'element-plus';
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
+import 'element-plus/theme-chalk/dark/css-vars.css';
 
 VueMarkdownEditor.use(vuepressTheme, {
   Prism,

@@ -26,6 +26,7 @@ import { TodoController } from "@/db/controller/TodoController.js";
 import { HabitActivityController } from "@/db/controller/HabitActivityController.js";
 import { HabitActivity } from "../db/model/HabitActivity.js";
 import moment from 'moment';
+import { ElMessage } from "element-plus";
 
 const { currentTodo, todoSettingPopup } = todoData();
 const { ChangeCurrentTodoHandle, updateTodoSettingPopupHandle, updateTimingPopupHandle } = todoData();
@@ -62,7 +63,7 @@ const onMove = async (evt) => {
       await todoController.update(toRaw(draggedElement));
       await todoController.update(toRaw(targetElement));
     } catch(err) {
-      alert('更新失败!!!');
+      ElMessage.error('更新失败');
       console.error("更新失败:", err);
     }
   }

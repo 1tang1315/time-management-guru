@@ -52,6 +52,7 @@ import HabitPopup from "@/components/popup/TodoHabitPopup.vue";
 import { TodoController } from "@/db/controller/TodoController.js";
 import { CollectionController } from "@/db/controller/CollectionController.js";
 import { todoData } from '@/hooks/todoData.js';
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const {
   currentTodo,
@@ -95,7 +96,7 @@ const moveToTodos = async () => {
   todo.collectionId = '';
   await todoController.update(todo);
   
-  alert("移动成功");
+  ElMessage.success('移动成功');
   updateTodoSettingPopupHandle(false);
 }
 
@@ -113,13 +114,20 @@ const habitHandle = () => {
 
 // 彻底删除(删除todo 保留activities)
 const deleteTodoHandler = async () => {
-  if(window.confirm("你确定要删除这个项目吗？")) {
-    // 处理彻底删除
-    await todoController.deleteById(currentTodo.value.id);
-    const newTodos = await todoController.getList();
-    await updateTodoList(newTodos);
-    updateTodoSettingPopupHandle(false);
-  }
+  await ElMessageBox.confirm(
+    '你确定要删除这个项目吗？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error'
+    }
+  );
+  
+  // 处理彻底删除
+  await todoController.deleteById(currentTodo.value.id);
+  const newTodos = await todoController.getList();
+  await updateTodoList(newTodos);
+  updateTodoSettingPopupHandle(false);
 }
 </script>
 

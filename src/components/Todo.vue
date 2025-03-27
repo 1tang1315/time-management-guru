@@ -89,10 +89,11 @@ import AddTodoActivityPopup from '@/components/popup/AddTodoActivityPopup.vue';
 import TimingPopup from '@/components/popup/TimingPopup.vue';
 import { Todo } from '@/db/model/Todo.js';
 import { Collection } from "@/db/model/Collection.js";
-import { TodoController} from "@/db/controller/TodoController.js";
-import { CollectionController} from "@/db/controller/CollectionController.js";
+import { TodoController } from "@/db/controller/TodoController.js";
+import { CollectionController } from "@/db/controller/CollectionController.js";
 import { todoData } from '@/hooks/todoData';
 import { collectionData } from '@/hooks/collectionData.js';
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const { addTodoActivityPopup, timingPopup } = todoData();
 
@@ -180,7 +181,7 @@ const foldHandler = async (collection) => {
 // 处理添加合集
 const addTodoCollectionHandler = async () => {
   if(!collectionName.value.trim()) {
-    alert("添加内容不能为空");
+    ElMessage.warning('添加内容不能为空');
     return;
   }
   
@@ -203,7 +204,7 @@ const addCollectionTodoHandler = (item) => {
 
 const addTodoHandler = async () => {
   if(!todoName.value.trim()) {
-    alert("添加内容不能为空");
+    ElMessage.warning('添加内容不能为空');
     return;
   }
   
@@ -218,40 +219,60 @@ const addTodoHandler = async () => {
       todoList.value = await todoController.getList();
       todoName.value = '';
     } catch(e) {
-      alert(e.message);
+      ElMessage.error(e.message);
     }
   }
 }
 
 const handleComplete = async (collection) => {
-  if(confirm('是否已彻底完成该合集?')) {
-    collection.completed = true;
-    await collectionController.update(toRaw(collection));
-    await updateCollectionList();
-  }
+  await ElMessageBox.confirm(
+    '是否已彻底完成该合集？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  );
+  
+  collection.completed = true;
+  await collectionController.update(toRaw(collection));
+  await updateCollectionList();
 }
 
 const handleRelease = async (collection) => {
-  if(confirm('该操作会将内部所有的todo项移除该合集')) {
-    const todoList = await todoController.getTodoByCollectionId(collection.id);
-    for(const item of todoList) {
-      item.collectionId = '';
-      await todoController.update(item);
+  await ElMessageBox.confirm(
+    '该操作会将内部所有的todo项移出该合集？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error'
     }
-    alert('释放成功!!!');
-    await updateCollectionList();
+  );
+  const todoList = await todoController.getTodoByCollectionId(collection.id);
+  for(const item of todoList) {
+    item.collectionId = '';
+    await todoController.update(item);
   }
+  ElMessage.success('释放成功');
+  await updateCollectionList();
 }
 const handleDelete = async (collection) => {
-  if(confirm('释放彻底删除该合集以及关联的todo项?')) {
-    const todoList = await todoController.getTodoByCollectionId(collection.id);
-    for(const item of todoList) {
-      await todoController.deleteById(item.id);
+  await ElMessageBox.confirm(
+    '彻底删除该合集以及关联的todo项？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error'
     }
-    await collectionController.deleteById(collection.id);
-    alert('删除成功!!!');
-    await updateCollectionList();
+  );
+  
+  const todoList = await todoController.getTodoByCollectionId(collection.id);
+  for(const item of todoList) {
+    await todoController.deleteById(item.id);
   }
+  await collectionController.deleteById(collection.id);
+  ElMessage.success('删除成功');
+  await updateCollectionList();
 }
 </script>
 
@@ -307,8 +328,9 @@ const handleDelete = async (collection) => {
   height: 360px;
   overflow: auto;
   margin: 5px 55px;
+  
   &-li {
-    &-title{
+    &-title {
       text-align: center;
     }
   }

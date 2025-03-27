@@ -89,6 +89,7 @@
 
 <script setup>
 import Header from '@/components/Header.vue';
+import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, ref, computed, toRaw } from 'vue';
 import { exportIndexedDB, importIndexedDB } from '@/db/initDB.js';
 import { initStore } from '@/store/index.js';
@@ -136,20 +137,27 @@ const handleAddMotto = async (event) => {
     
     addMotto.value = '';
     event.target.blur();
-    alert('添加成功!!!');
+    ElMessage.success('添加成功!');
   }
 }
 const handleDelete = async (index) => {
-  if(confirm("您确定要删除此句座右铭吗?")) {
-    user.value.motto.splice(index, 1);
-
-    await userController.update(toRaw(user.value));
-  }
+  await ElMessageBox.confirm(
+    '您确定要删除此句座右铭吗？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error'
+    }
+  );
+  
+  user.value.motto.splice(index, 1);
+  await userController.update(toRaw(user.value));
 }
+
 const handleSettingAsHeaderTitle = (motto) => {
   user.value.title = motto;
   userController.update(toRaw(user.value));
-  alert("设置成功!");
+  ElMessage.success('设置成功!');
 }
 
 const isConstellationLoader = ref(false);
@@ -235,7 +243,7 @@ const isCollectHandle = () => {
   if(isCollect.value && carlet.value) {
     const result = user.value.motto?.filter(item => item === carlet.value)[0];
     if(result) {
-      alert('该语录已收藏');
+      ElMessage.success('该语录已收藏');
       return;
     }
     user.value.motto.push(carlet.value);
@@ -246,24 +254,29 @@ const isCollectHandle = () => {
 // 数据
 // 导出整个indexdb数据库的数据
 const dataExportHandle = async () => {
-  const userConfirmed = confirm('确定要导出全部数据吗？');
-  
-  if(userConfirmed) {
-    try {
-      const data = await exportIndexedDB();
-      const jsonData = JSON.stringify(data);
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '人生时间管理大师.json';
-      a.click();
-      
-      URL.revokeObjectURL(url);
-    } catch(error) {
-      console.error(error);
-    }
+  try {
+    await ElMessageBox.confirm(
+      '确定要导出全部数据吗？',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'success'
+      }
+    );
+    
+    const data = await exportIndexedDB();
+    const jsonData = JSON.stringify(data);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '人生时间管理大师.json';
+    a.click();
+    
+    URL.revokeObjectURL(url);
+  } catch(error) {
+    console.error(error);
   }
 };
 
@@ -279,9 +292,9 @@ const handleFile = (event) => {
   reader.onload = async function(e) {
     const data = JSON.parse(e.target.result);
     importIndexedDB(data).then(() => {
-      alert("数据导入成功!!!");
+      ElMessage.success('数据导入成功');
     }).catch(error => {
-      alert("数据导入失败!");
+      ElMessage.error('数据导入失败');
       console.log("数据导入失败!", error);
     })
   }
@@ -306,10 +319,10 @@ const handelUploadCloud = async () => {
     // 上传文件
     const uploadUrl = '/人生时间管理大师/人生时间管理大师.json';
     await uploadFile(uploadUrl, jsonData);
-    alert('数据上传成功!');
+    ElMessage.success('数据上传成功');
   } catch(error) {
+    ElMessage.error('数据上传失败');
     console.error(error);
-    alert('数据上传失败!');
   }
   isUploadCloud.value = false;
 }
@@ -320,9 +333,9 @@ const handelDownloadCloud = async () => {
   const result = await downloadFile('/人生时间管理大师/人生时间管理大师.json');
   
   importIndexedDB(result).then(() => {
-    alert("数据导入成功!!!");
+    ElMessage.success('数据导入成功');
   }).catch(error => {
-    alert("数据导入失败!");
+    ElMessage.error('数据导入失败');
     console.log("数据导入失败!", error);
   });
   
@@ -334,10 +347,10 @@ const handelIncrementSync = async () => {
   
   try {
     await incrementSync();
-    alert('数据同步成功');
+    ElMessage.success('数据同步成功');
   } catch(e) {
+    ElMessage.error('数据同步失败');
     console.log(e);
-    alert('数据同步失败');
   }
   
   isIncrementSync.value = false;

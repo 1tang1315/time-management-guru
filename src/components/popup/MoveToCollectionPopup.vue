@@ -12,6 +12,7 @@
 import { toRaw, inject } from 'vue';
 import { todoData } from '@/hooks/todoData.js';
 import { TodoController } from "@/db/controller/TodoController.js";
+import { ElMessage } from "element-plus";
 
 const todoController = new TodoController();
 const { currentTodo, moveToCollectionPopup } = todoData();
@@ -31,7 +32,7 @@ const handleMove = async (item) => {
 
   await todoController.update(todo);
 
-  alert('移动成功!');
+  ElMessage.success('移动成功');
   ChangeMoveToCollectionPopupHandle(false);
   updateTodoSettingPopupHandle(false);
   await updateTodoList();

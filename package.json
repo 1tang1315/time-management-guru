@@ -22,8 +22,6 @@
     "pinia": "^2.1.7",
     "tesseract.js": "^5.1.0",
     "vue": "^3.4.29",
-    "vue-ctk-date-time-picker": "^3.0.0-alpha.0",
-    "vue-datepicker-ui": "^3.1.1",
     "vue-router": "^4.4.0",
     "vuedraggable": "^4.1.0",
     "webdav": "^5.8.0",
@@ -34,6 +32,7 @@
     "babel-plugin-import": "^1.13.8",
     "sass": "^1.77.8",
     "unplugin-auto-import": "^19.1.1",
+    "unplugin-element-plus": "^0.9.1",
     "unplugin-vue-components": "^28.4.1",
     "vite": "^5.3.1"
   }

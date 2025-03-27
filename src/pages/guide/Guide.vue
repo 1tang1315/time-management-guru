@@ -33,6 +33,7 @@ import { NoteController } from "@/db/controller/NoteController.js";
 import { Note } from "@/db/model/Note.js";
 import moment from "moment/moment.js";
 import 'moment/locale/zh-cn';
+import { ElMessage } from "element-plus";
 
 moment.locale('zh-cn');
 
@@ -260,7 +261,7 @@ const saveDiaryHandle = async (text) => {
     }
     await noteController.add(diaryMarkdown);
   }
-  alert('保存成功!!!');
+  ElMessage.success('保存成功');
 }
 onMounted(async () => {
   const diaryObj = await noteController.getNoteByTitle('日记');
@@ -288,7 +289,7 @@ const saveStagePlanHandle = async (text) => {
     });
     await noteController.add(stagePlanObj);
   }
-  alert('保存成功!!!')
+  ElMessage.success('保存成功');
 }
 </script>
 
