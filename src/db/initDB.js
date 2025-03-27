@@ -1,12 +1,13 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'MyLife';
-const VERSION = 1;
-const ACTIVITIES_STORE_NAME = 'activity';
-const TODOS_STORE_NAME = 'todo';
-const MARKDOWNS_STORE_NAME = 'note';
-const COLLECTIONS_STORE_NAME = 'collection';
-const ME_STORE_NAME = 'user';
+const VERSION = 2;
+const ACTIVITY_STORE_NAME = 'activity';
+const HABITACTIVITY_STORE_NAME = 'habitActivity';
+const TODO_STORE_NAME = 'todo';
+const NOTE_STORE_NAME = 'note';
+const COLLECTION_STORE_NAME = 'collection';
+const USER_STORE_NAME = 'user';
 
 /**
  * 数据库初始化
@@ -22,8 +23,8 @@ export const initDB = async () => {
        * note (可关联) n->n todo collection
        */
       // user 表
-      if (!db.objectStoreNames.contains(ME_STORE_NAME)) {
-        const store = db.createObjectStore(ME_STORE_NAME, {
+      if (!db.objectStoreNames.contains(USER_STORE_NAME)) {
+        const store = db.createObjectStore(USER_STORE_NAME, {
           keyPath: 'id',
           autoIncrement: true
         });
@@ -34,9 +35,20 @@ export const initDB = async () => {
       }
 
       // activity 活动表
-      if (!db.objectStoreNames.contains(ACTIVITIES_STORE_NAME)) {
+      if (!db.objectStoreNames.contains(ACTIVITY_STORE_NAME)) {
         const store = db.createObjectStore(
-          ACTIVITIES_STORE_NAME, {
+          ACTIVITY_STORE_NAME, {
+            keyPath: 'id',
+            autoIncrement: true
+          });
+
+        store.createIndex('todoId', 'todoId', { unique: false });
+      }
+      
+      // habitActivity 表
+      if (!db.objectStoreNames.contains(HABITACTIVITY_STORE_NAME)) {
+        const store = db.createObjectStore(
+          HABITACTIVITY_STORE_NAME, {
             keyPath: 'id',
             autoIncrement: true
           });
@@ -44,37 +56,37 @@ export const initDB = async () => {
         store.createIndex('todoId', 'todoId', { unique: false });
       }
 
-      // todo表
-      if (!db.objectStoreNames.contains(TODOS_STORE_NAME)) {
-        const store = db.createObjectStore(TODOS_STORE_NAME, {
+      // todo 表
+      if (!db.objectStoreNames.contains(TODO_STORE_NAME)) {
+        const store = db.createObjectStore(TODO_STORE_NAME, {
           keyPath: 'id',
           autoIncrement: true
         });
 
-        store.createIndex('name', 'name', { unique: true });
-        store.createIndex('order', 'order', { unique: true });
+        store.createIndex('name', 'name', { unique: false });
+        store.createIndex('order', 'order', { unique: false });
         store.createIndex('collectionId', 'collectionId', { unique: false });
       }
-
+      
       // collection 表
-      if (!db.objectStoreNames.contains(COLLECTIONS_STORE_NAME)) {
-        const store = db.createObjectStore(COLLECTIONS_STORE_NAME, {
+      if (!db.objectStoreNames.contains(COLLECTION_STORE_NAME)) {
+        const store = db.createObjectStore(COLLECTION_STORE_NAME, {
           keyPath: 'id',
           autoIncrement: true
         });
 
-        store.createIndex('name', 'name', { unique: true });
-        store.createIndex('order', 'order', { unique: true });
+        store.createIndex('name', 'name', { unique: false });
+        store.createIndex('order', 'order', { unique: false });
       }
 
       // note 表
-      if (!db.objectStoreNames.contains(MARKDOWNS_STORE_NAME)) {
-        const store = db.createObjectStore(MARKDOWNS_STORE_NAME, {
+      if (!db.objectStoreNames.contains(NOTE_STORE_NAME)) {
+        const store = db.createObjectStore(NOTE_STORE_NAME, {
           keyPath: 'id',
           autoIncrement: true
         });
         
-        store.createIndex('title', 'title', { unique: true });
+        store.createIndex('title', 'title', { unique: false });
         store.createIndex('todoId', 'todoId', { unique: false });
         store.createIndex('collectionId', 'collectionId', { unique: false });
       }

@@ -1,14 +1,14 @@
 export class Activity {
   constructor({
-                todoId,
-                todoName,
-                beginTime,
-                endTime,
-                duration,
-                experience,
-                createTime,
-                updateTime
-              }) {
+    todoId,
+    todoName,
+    beginTime,
+    endTime,
+    duration,
+    experience,
+    createTime,
+    updateTime
+  }) {
     this.todoId = todoId;
     this.todoName = todoName;
     this.beginTime = beginTime;

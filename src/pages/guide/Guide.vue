@@ -23,8 +23,6 @@
         height="500px"/>
     </div>
   </div>
-  
-  <div ref="chartRef" style="width: 100%; height: 500px;"></div>
 </template>
 
 <script setup>
@@ -35,6 +33,7 @@ import { NoteController } from "@/db/controller/NoteController.js";
 import { Note } from "@/db/model/Note.js";
 import moment from "moment/moment.js";
 import 'moment/locale/zh-cn';
+import { ElMessage } from "element-plus";
 
 moment.locale('zh-cn');
 
@@ -262,7 +261,7 @@ const saveDiaryHandle = async (text) => {
     }
     await noteController.add(diaryMarkdown);
   }
-  alert('保存成功!!!');
+  ElMessage.success('保存成功');
 }
 onMounted(async () => {
   const diaryObj = await noteController.getNoteByTitle('日记');
@@ -290,82 +289,8 @@ const saveStagePlanHandle = async (text) => {
     });
     await noteController.add(stagePlanObj);
   }
-  alert('保存成功!!!')
+  ElMessage.success('保存成功');
 }
-
-
-import * as echarts from "echarts";
-
-const chartRef = ref(null);
-
-onMounted(() => {
-  const chart = echarts.init(chartRef.value);
-  
-  // 生成日历数据（假设 2024 年）
-  const startDate = new Date("2024-01-01");
-  const endDate = new Date("2024-01-15");
-  const dateList = [];
-  while(startDate <= endDate) {
-    dateList.push(startDate.toISOString().split("T")[0]); // 格式化 YYYY-MM-DD
-    startDate.setDate(startDate.getDate() + 1);
-  }
-  
-  // 习惯列表
-  const habits = ["早起", "阅读", "锻炼", "单词", "新闻"];
-  
-  // 生成随机打卡数据
-  const data = [];
-  habits.forEach((habit, rowIdx) => {
-    dateList.forEach((date) => {
-      data.push([date, rowIdx, Math.random() > 0.2 ? "✅" : "❌"]); // ✅ 或 ❌
-    });
-  });
-  
-  chart.setOption({
-    tooltip: { trigger: "item" },
-    grid: { left: "10%", right: "10%", top: "10%", bottom: "10%" },
-    xAxis: {
-      type: "category",
-      data: dateList, // 横轴显示日期
-      position: "top",
-      axisTick: {
-        show: false, // 隐藏刻度
-      },
-      axisLabel: {
-        fontSize: 16,
-      }
-    },
-    yAxis: {
-      type: "category",
-      data: habits,
-      axisTick: {
-        show: false, // 隐藏刻度
-      },
-      axisLabel: {
-        fontSize: 16,
-      }
-    },
-    series: [
-      {
-        type: "scatter",
-        data: data,
-        symbolSize: 0, // 隐藏散点
-        label: {
-          show: true,
-          formatter: (params) => params.value[2], // 显示 ✅ ❌
-          color: "#333", // 文字颜色
-          fontSize: 20,
-        },
-      },
-    ],
-    dataZoom: [
-      {
-        type: 'slider',
-        xAxisIndex: [0]
-      }
-    ]
-  });
-});
 </script>
 
 <style lang="scss" scoped>

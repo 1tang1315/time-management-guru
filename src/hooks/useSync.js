@@ -1,6 +1,7 @@
 import { onMounted, onBeforeUnmount, ref } from "vue";
 import {exportIndexedDB, importIndexedDB} from "@/db/initDB.js";
 import {downloadFile, uploadFile} from "@/utils/webdavClient.js";
+import { ElMessage } from "element-plus";
 
 /**
  * 同步数据(利用云盘进行同步)
@@ -31,7 +32,7 @@ export function useSync() {
       // 上传文件
       const uploadUrl = '/人生时间管理大师/人生时间管理大师.json';
       await uploadFile(uploadUrl, blob);
-      alert('上传成功!');
+      ElMessage.success('上传成功');
     } catch (error) {
       console.error(error);
     }
@@ -47,9 +48,9 @@ export function useSync() {
     const result = await downloadFile('/人生时间管理大师/人生时间管理大师.json');
 
     importIndexedDB(result).then(() => {
-      alert("数据导入成功!!!");
+      ElMessage.success('数据导入成功');
     }).catch(error => {
-      alert("数据导入失败!");
+      ElMessage.error('数据导入失败');
       console.log("数据导入失败!", error);
     });
 

@@ -3,7 +3,14 @@ import { storeToRefs } from 'pinia'
 
 export const todoData = () => {
   const store = todoStore();
-  const { addTodoActivityPopup, timingPopup, todoSettingPopup, moveToCollectionPopup, currentTodo } = storeToRefs(store);
+  const {
+    addTodoActivityPopup,
+    timingPopup,
+    todoSettingPopup,
+    moveToCollectionPopup,
+    todoHabitPopup,
+    currentTodo
+  } = storeToRefs(store);
 
   const ChangeCurrentTodoHandle = (obj) => {
     store.ChangeCurrentTodo(obj);
@@ -22,6 +29,9 @@ export const todoData = () => {
   const ChangeMoveToCollectionPopupHandle = (value) => {
     store.ChangeMoveToCollectionPopup(value);
   }
+  const updateTodoHabitPopupHandle = (value) => {
+    store.ChangeTodoHabitPopup(value);
+  }
 
   return {
     currentTodo,
@@ -29,10 +39,12 @@ export const todoData = () => {
     todoSettingPopup,
     addTodoActivityPopup,
     moveToCollectionPopup,
+    todoHabitPopup,
     ChangeMoveToCollectionPopupHandle,
     ChangeCurrentTodoHandle,
     updateTodoActivityPopupHandle,
     updateTodoSettingPopupHandle,
-    updateTimingPopupHandle
+    updateTimingPopupHandle,
+    updateTodoHabitPopupHandle
   }
 }

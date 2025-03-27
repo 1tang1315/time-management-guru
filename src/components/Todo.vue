@@ -8,13 +8,32 @@
       </button>
     </div>
     
-    <input class="add-todo" v-if="inputIndex === 0" v-model="todoName" @keyup.enter="addTodoHandler"
-           placeholder="请输入单个专注项或计划">
-    <input class="add-todo" v-else v-model="collectionName" @keyup.enter="addTodoCollectionHandler"
-           placeholder="请输入合集名称">
+    <input class="add-todo"
+           v-if="inputIndex === 0"
+           v-model="todoName"
+           @keyup.enter="addTodoHandler"
+           placeholder="请输入单个专注项或计划"
+    />
+    <input class="add-collection"
+           v-else
+           v-model="collectionName"
+           @keyup.enter="addTodoCollectionHandler"
+           placeholder="请输入合集名称"
+    />
     
     <ul v-if="inputIndex === 0" class="oneContent">
-      <TodoItem :todos="todos" :page="page"/>
+      <li class="oneContent-li">
+        <h3 class="oneContent-li-title">习惯打卡项</h3>
+        <TodoItem :list="habitList" :page="page"/>
+      </li>
+      <li class="oneContent-li">
+        <h3 class="oneContent-li-title">单项</h3>
+        <TodoItem :list="todoList" :page="page"/>
+      </li>
+      <li class="oneContent-li">
+        <h3 class="oneContent-li-title">已完成</h3>
+        <TodoItem :list="completedList" :page="page"/>
+      </li>
     </ul>
     
     <div v-if="inputIndex === 1" class="collections">
@@ -33,7 +52,7 @@
             </div>
             
             <ul class="collection-body" v-if="!collection.isFolded">
-              <TodoItem :todos="collectionTodoList" :page="page"/>
+              <TodoItem :list="collectionTodoList" :page="page"/>
             </ul>
           </div>
         </template>
@@ -68,44 +87,45 @@ import TodoItem from '@/components/TodoItem.vue';
 import AddCollectionTodoPopup from '@/components/popup/AddCollectionTodoPopup.vue';
 import AddTodoActivityPopup from '@/components/popup/AddTodoActivityPopup.vue';
 import TimingPopup from '@/components/popup/TimingPopup.vue';
-
 import { Todo } from '@/db/model/Todo.js';
-
+import { Collection } from "@/db/model/Collection.js";
+import { TodoController } from "@/db/controller/TodoController.js";
+import { CollectionController } from "@/db/controller/CollectionController.js";
 import { todoData } from '@/hooks/todoData';
+import { collectionData } from '@/hooks/collectionData.js';
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const { addTodoActivityPopup, timingPopup } = todoData();
 
-import { collectionData } from '@/hooks/collectionData.js'
-import { Collection } from "@/db/model/Collection.js";
-
 const { addCollectionTodoPopup } = collectionData();
 const {
-  updateCollectionTodoPopupHandle,
-  addCollectionHandle
+  updateCollectionTodoPopupHandle
 } = collectionData();
-
-import { TodoController} from "@/db/controller/TodoController.js";
-import { CollectionController} from "@/db/controller/CollectionController.js";
 
 const todoController = new TodoController();
 const collectionController = new CollectionController();
 
-const emit = defineEmits(['todoDetail']);
-const props = defineProps(['page'])
+const props = defineProps(['page']);
 
 const inputIndex = ref(0);
 const collectionName = ref('');
-
 const todoName = ref('');
-const todos = ref([]);
+const habitList = ref([]);
+const todoList = ref([]);
+const completedList = ref([]);
 const collectionTodoList = ref([]);
 const collections = ref([]);
 
 onMounted(async () => {
-  todos.value = await todoController.getList();
+  const list = await todoController.getList();
+  habitList.value = list.filter(item => item.isHabit);
+  todoList.value = list.filter(item => !(item.isHabit || item.completed));
+  completedList.value = list.filter(item => !item.isHabit && item.completed);
+  
   collections.value = await collectionController.getList();
 });
 
+// TODO 优化? 不能用防抖, 实时更新, 所有项的order都要更新
 const onMove = async (evt) => {
   const { index, futureIndex } = evt.draggedContext;
   
@@ -122,20 +142,20 @@ const onMove = async (evt) => {
   }
 }
 
-// 更新todos(处理子组件的数据更新请求)
-const updateTodos = async () => {
-  todos.value = await todoController.getList();
+// 更新todoList(处理子组件的数据更新请求)
+const updateTodoList = async () => {
+  todoList.value = await todoController.getList();
 }
 // 更新updateCollection(处理子组件的合集数据更新)
-const updateCollections = async () => {
+const updateCollectionList = async () => {
   collections.value = await collectionController.getList();
 }
-provide('updateTodos', updateTodos);
-provide('updateCollections', updateCollections);
+provide('updateTodoList', updateTodoList);
+provide('updateCollectionList', updateCollectionList);
 
 const toOneHandler = async () => {
   inputIndex.value = 0;
-  todos.value = await todoController.getList();
+  todoList.value = await todoController.getList();
 }
 // 导航切换为合集, 并获取collections最新数据
 const toCollectionHandler = async () => {
@@ -161,7 +181,7 @@ const foldHandler = async (collection) => {
 // 处理添加合集
 const addTodoCollectionHandler = async () => {
   if(!collectionName.value.trim()) {
-    alert("添加内容不能为空");
+    ElMessage.warning('添加内容不能为空');
     return;
   }
   
@@ -171,7 +191,7 @@ const addTodoCollectionHandler = async () => {
     isFolded: true
   });
   
-  await addCollectionHandle(collectionObj);
+  await collectionController.add(collectionObj);
   collections.value = await collectionController.getList();
   collectionName.value = '';
 }
@@ -182,10 +202,9 @@ const addCollectionTodoHandler = (item) => {
   currentCollection.value = item;
 }
 
-// 添加 todo 单项
 const addTodoHandler = async () => {
   if(!todoName.value.trim()) {
-    alert("添加内容不能为空");
+    ElMessage.warning('添加内容不能为空');
     return;
   }
   
@@ -197,43 +216,63 @@ const addTodoHandler = async () => {
     
     try {
       await todoController.add(todoObj);
-      todos.value = await todoController.getList();
+      todoList.value = await todoController.getList();
       todoName.value = '';
     } catch(e) {
-      alert(e.message);
+      ElMessage.error(e.message);
     }
   }
 }
 
 const handleComplete = async (collection) => {
-  if(confirm('是否已彻底完成该合集?')) {
-    collection.completed = true;
-    await collectionController.update(toRaw(collection));
-    await updateCollections();
-  }
+  await ElMessageBox.confirm(
+    '是否已彻底完成该合集？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  );
+  
+  collection.completed = true;
+  await collectionController.update(toRaw(collection));
+  await updateCollectionList();
 }
 
 const handleRelease = async (collection) => {
-  if(confirm('该操作会将内部所有的todo项移除该合集')) {
-    const todoList = await todoController.getTodoByCollectionId(collection.id);
-    for(const item of todoList) {
-      item.collectionId = '';
-      await todoController.update(item);
+  await ElMessageBox.confirm(
+    '该操作会将内部所有的todo项移出该合集？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error'
     }
-    alert('释放成功!!!');
-    await updateCollections();
+  );
+  const todoList = await todoController.getTodoByCollectionId(collection.id);
+  for(const item of todoList) {
+    item.collectionId = '';
+    await todoController.update(item);
   }
+  ElMessage.success('释放成功');
+  await updateCollectionList();
 }
 const handleDelete = async (collection) => {
-  if(confirm('释放彻底删除该合集以及关联的todo项?')) {
-    const todoList = await todoController.getTodoByCollectionId(collection.id);
-    for(const item of todoList) {
-      await todoController.deleteById(item.id);
+  await ElMessageBox.confirm(
+    '彻底删除该合集以及关联的todo项？',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error'
     }
-    await collectionController.deleteById(collection.id);
-    alert('删除成功!!!');
-    await updateCollections();
+  );
+  
+  const todoList = await todoController.getTodoByCollectionId(collection.id);
+  for(const item of todoList) {
+    await todoController.deleteById(item.id);
   }
+  await collectionController.deleteById(collection.id);
+  ElMessage.success('删除成功');
+  await updateCollectionList();
 }
 </script>
 
@@ -247,7 +286,8 @@ const handleDelete = async (collection) => {
   font-size: 20px;
 }
 
-.add-todo {
+.add-todo,
+.add-collection {
   width: 380px;
   height: 20px;
   margin: 0 44px;
@@ -268,6 +308,7 @@ const handleDelete = async (collection) => {
     display: flex;
     justify-content: center;
     
+    .addHabit,
     .addOne,
     .addCollection {
       margin: 0 5px;
@@ -287,6 +328,12 @@ const handleDelete = async (collection) => {
   height: 360px;
   overflow: auto;
   margin: 5px 55px;
+  
+  &-li {
+    &-title {
+      text-align: center;
+    }
+  }
 }
 
 // 合集
