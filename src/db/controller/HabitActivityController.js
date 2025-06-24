@@ -6,16 +6,22 @@ export class HabitActivityController extends BaseController{
     super(new HabitActivityService());
   }
   
-  async getHabitActivityByClockInTime(date) {
+  async getHabitActivityListByClockInDay(date) {
     const habitActivityService = new HabitActivityService();
     
-    return await habitActivityService.getHabitActivityByClockInTime(date);
+    return await habitActivityService.getHabitActivityListByClockInDay(date);
   }
   
-  async getHabitActivityByTodoId(todoId) {
+  async getHabitActivityListByTodoId(todoId) {
     const habitActivityService = new HabitActivityService();
     
-    return await habitActivityService.getHabitActivityByTodoId(todoId);
+    return await habitActivityService.getHabitActivityListByTodoId(todoId);
+  }
+  
+  async getHabitActivityByClockInDayAndTodoId(date, todoId) {
+    const habitActivityService = new HabitActivityService();
+    
+    return await habitActivityService.getHabitActivityByClockInDayAndTodoId(date, todoId);
   }
   
   async insertList(list) {

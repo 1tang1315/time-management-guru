@@ -3,8 +3,17 @@
   
   <div class="todo">
     <div class="nav">
-      <button class="addOne" :class="inputIndex === 0 ? 'input-active' : ''" @click="toOneHandler">单个任务项</button>
-      <button class="addCollection" :class="inputIndex === 1 ? 'input-active' : ''" @click="toCollectionHandler">合集
+      <button
+        class="addOne"
+        :class="inputIndex === 0 ? 'input-active' : ''"
+        @click="toOneHandler"
+      >单个任务项
+      </button>
+      <button
+        class="addCollection"
+        :class="inputIndex === 1 ? 'input-active' : ''"
+        @click="toCollectionHandler"
+      >合集
       </button>
     </div>
     
@@ -24,7 +33,8 @@
     <ul v-if="inputIndex === 0" class="oneContent">
       <li class="oneContent-li">
         <h3 class="oneContent-li-title">习惯打卡项</h3>
-        <TodoItem :list="habitList" :page="page"/>
+        
+        <HabitTodoItem :page="page"/>
       </li>
       <li class="oneContent-li">
         <h3 class="oneContent-li-title">单项</h3>
@@ -59,6 +69,7 @@
       </draggable>
     </div>
   </div>
+  
   <!-- 计时弹窗 -->
   <teleport to='body'>
     <div class="overlay" v-show="timingPopup">
@@ -81,9 +92,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, toRaw, provide } from 'vue';
+import { ref, onMounted, computed, toRaw, provide } from 'vue';
 import draggable from 'vuedraggable';
+import { ElMessage, ElMessageBox } from "element-plus";
 import TodoItem from '@/components/TodoItem.vue';
+import HabitTodoItem from "@/components/HabitTodoItem.vue";
 import AddCollectionTodoPopup from '@/components/popup/AddCollectionTodoPopup.vue';
 import AddTodoActivityPopup from '@/components/popup/AddTodoActivityPopup.vue';
 import TimingPopup from '@/components/popup/TimingPopup.vue';
@@ -93,7 +106,6 @@ import { TodoController } from "@/db/controller/TodoController.js";
 import { CollectionController } from "@/db/controller/CollectionController.js";
 import { todoData } from '@/hooks/todoData';
 import { collectionData } from '@/hooks/collectionData.js';
-import { ElMessage, ElMessageBox } from "element-plus";
 
 const { addTodoActivityPopup, timingPopup } = todoData();
 
@@ -110,17 +122,14 @@ const props = defineProps(['page']);
 const inputIndex = ref(0);
 const collectionName = ref('');
 const todoName = ref('');
-const habitList = ref([]);
 const todoList = ref([]);
 const completedList = ref([]);
 const collectionTodoList = ref([]);
 const collections = ref([]);
 
 onMounted(async () => {
-  const list = await todoController.getList();
-  habitList.value = list.filter(item => item.isHabit);
-  todoList.value = list.filter(item => !(item.isHabit || item.completed));
-  completedList.value = list.filter(item => !item.isHabit && item.completed);
+  todoList.value = await todoController.getTodoList();
+  completedList.value = await todoController.getTodoCompletedList();
   
   collections.value = await collectionController.getList();
 });
@@ -208,6 +217,37 @@ const addTodoHandler = async () => {
     return;
   }
   
+  const todo = await todoController.getTodoByTodoName(todoName.value);
+  if(todo) {
+    ElMessageBox.confirm(
+      '该名称的todo项已经存在, 您确认继续添加吗?',
+      'Warning',
+      {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+      .then(async () => {
+        if(todoName.value) {
+          const todoObj = new Todo({
+            name: todoName.value.trim(),
+            completed: false
+          });
+          
+          try {
+            await todoController.add(todoObj);
+            todoList.value = await todoController.getList();
+            todoName.value = '';
+            ElMessage.success("添加成功");
+          } catch(e) {
+            ElMessage.error(e.message);
+          }
+        }
+      });
+    return;
+  }
+  
   if(todoName.value) {
     const todoObj = new Todo({
       name: todoName.value.trim(),
@@ -218,6 +258,7 @@ const addTodoHandler = async () => {
       await todoController.add(todoObj);
       todoList.value = await todoController.getList();
       todoName.value = '';
+      ElMessage.success("添加成功");
     } catch(e) {
       ElMessage.error(e.message);
     }

@@ -99,32 +99,44 @@ const handleEnd = async () => {
 const theEndConfirm = async () => {
   updateTimingPopupHandle(false);
   isTheEndPopup.value = false;
+  const beginTime = currentTodo.value.beginTime;
   
   const activity = new Activity({
     todoId: currentTodo.value.id,
     todoName: currentTodo.value.name,
-    beginTime: currentTodo.value.beginTime,
+    beginTime,
     endTime: endTime.value,
     duration: minutes.value.toString(),
     experience: experience.value || '无'
   });
   
+  // 将该专注添如activities数据库
+  await activityController.update(activity);
+  
   if(currentTodo.value.isHabit) {
-    const habitActivity = new HabitActivity({
-      createTime: moment().format('YYYY-MM-DD HH:mm:ss'),
-      todoId: currentTodo.value.id,
-      todoName: currentTodo.value.name,
-      clockInTime: moment().format('YYYY-MM-DD HH:mm:ss'),
-      status: '成功'
-    });
-    await habitActivityController.update(habitActivity);
+    const beginTimeData = await habitActivityController
+      .getHabitActivityByClockInDayAndTodoId(
+        beginTime.value.split(" ")[0],
+        currentTodo.value.id
+      );
+    
+    if(beginTimeData) {
+      beginTimeData.count++;
+      await habitActivityController.update(beginTimeData);
+    } else {
+      const habitActivity = new HabitActivity({
+        createTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+        todoId: currentTodo.value.id,
+        todoName: currentTodo.value.name,
+        clockInDay: moment().format('YYYY-MM-DD'),
+        status: true
+      });
+      await habitActivityController.update(habitActivity);
+    }
   }
   
   currentTodo.value.isTiming = false;
   await todoController.update(toRaw(currentTodo.value));
-  
-  // 将该专注添如activities数据库
-  await activityController.update(activity);
   
   resetTimer();
   terminateWorkerHandle();

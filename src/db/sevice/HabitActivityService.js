@@ -6,7 +6,7 @@ export class HabitActivityService extends BaseService {
     super('habitActivity');
   }
   
-  async getHabitActivityByClockInTime(date) {
+  async getHabitActivityListByClockInDay(date) {
     const db = await initDB();
     
     const tx = db.transaction('habitActivity', 'readonly');
@@ -16,16 +16,21 @@ export class HabitActivityService extends BaseService {
     
     if(habitActivityList.length <= 0) { return; }
     
-    return habitActivityList.filter(activity => activity.clockInTime.startsWith(date));
+    return habitActivityList.filter(activity => activity.clockInDay.startsWith(date));
   }
   
-  async getHabitActivityByTodoId(todoId) {
+  async getHabitActivityListByTodoId(todoId) {
     const db = await initDB();
     const tx = db.transaction('habitActivity', 'readonly');
     const store = tx.objectStore('habitActivity');
     const index = store.index('todoId');
     
     return await index.getAll(todoId);
+  }
+  
+  async getHabitActivityByClockInDayAndTodoId(date, todoId) {
+    const data = await this.getHabitActivityListByClockInDay(date);
+    return data?.filter(item => item.todoId === todoId)[0];
   }
   
   async deleteHabitActivityByTodoId(todoId) {

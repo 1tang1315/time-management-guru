@@ -69,19 +69,25 @@
 
 <script setup>
 import { toRaw } from 'vue';
+import { ElMessage } from 'element-plus';
 import { todoData } from "@/hooks/todoData.js";
-import { TodoController } from "../../db/controller/TodoController.js";
+import { TodoController } from "@/db/controller/TodoController.js";
+import moment from "moment";
 
 const {
   currentTodo,
-  updateTodoHabitPopupHandle
+  updateTodoHabitPopupHandle,
+  updateTodoSettingPopupHandle
 } = todoData();
 const todoController = new TodoController();
 
 const handleConfig = async () => {
   currentTodo.value.isHabit = true;
+  currentTodo.value['beginHabitTime'] = moment().format('YYYY-MM-DD');
   await todoController.update(toRaw(currentTodo.value));
   updateTodoHabitPopupHandle(false);
+  updateTodoSettingPopupHandle(false);
+  ElMessage.success("操作成功");
 }
 </script>
 

@@ -17,6 +17,9 @@ export class BaseController {
     if(!obj.createTime) {
       obj.createTime = moment().format('YYYY-MM-DD HH:mm:ss');
     }
+    if(!obj.updateTime) {
+      obj.updateTime = moment().format('YYYY-MM-DD HH:mm:ss');
+    }
     return await this.service.add(obj);
   }
   

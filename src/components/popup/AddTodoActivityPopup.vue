@@ -48,7 +48,7 @@ const endTime = ref(moment().format('YYYY-MM-DD HH:mm'))
 const experience = ref('');
 
 const handleTimeConfig = () => {
-  if (timeRange.value && timeRange.value.length === 2) {
+  if(timeRange.value && timeRange.value.length === 2) {
     beginTime.value = timeRange.value[0]; // 开始时间
     endTime.value = timeRange.value[1];   // 结束时间
   } else {
@@ -60,9 +60,11 @@ const handleTimeConfig = () => {
 }
 
 const addActivityConfirm = async () => {
-  const duration = (new Date(endTime.value) - new Date(beginTime.value)) / (1000 * 60);
+  const duration = (
+    new Date(endTime.value) - new Date(beginTime.value)
+  ) / (1000 * 60);
   
-  if (duration < 1) {
+  if(duration < 1) {
     ElMessage({
       message: '时间间隔不能小于一分钟, 不做记录',
       type: 'warning'
@@ -78,19 +80,30 @@ const addActivityConfirm = async () => {
     duration: duration.toString(),
     experience: experience.value || '无'
   });
-
+  
   // 将该专注添如activities数据库
   await activityController.update(activityObject);
   
   if(currentTodo.value.isHabit) {
-    const habitActivity = new HabitActivity({
-      createTime: moment().format('YYYY-MM-DD HH:mm:ss'),
-      todoId: currentTodo.value.id,
-      todoName: currentTodo.value.name,
-      clockInTime: moment().format('YYYY-MM-DD HH:mm:ss'),
-      status: '成功'
-    });
-    await habitActivityController.update(habitActivity);
+    const beginTimeData = await habitActivityController
+      .getHabitActivityByClockInDayAndTodoId(
+        beginTime.value.split(" ")[0],
+        currentTodo.value.id
+      );
+    
+    if(beginTimeData) {
+      beginTimeData.count++;
+      await habitActivityController.update(beginTimeData);
+    } else {
+      const habitActivity = new HabitActivity({
+        createTime: moment().format('YYYY-MM-DD HH:mm:ss'),
+        todoId: currentTodo.value.id,
+        todoName: currentTodo.value.name,
+        clockInDay: moment().format('YYYY-MM-DD'),
+        status: true
+      });
+      await habitActivityController.update(habitActivity);
+    }
   }
   
   ElMessage({
@@ -119,22 +132,23 @@ const addActivityCancel = () => {
   z-index: 200;
   border-radius: 5px;
   background-color: #007acc;
-
+  
   .title {
     text-align: center;
   }
+  
   .input {
     display: flex;
     flex-direction: row;
     justify-content: center;
-
+    
     .experience {
       display: flex;
       flex-direction: column;
       margin: 0 10px;
       text-align: center;
     }
-
+    
     textarea {
       width: 350px;
       height: 150px;
@@ -145,13 +159,13 @@ const addActivityCancel = () => {
       outline: none;
     }
   }
-
+  
   .btn {
     width: 80%;
     display: flex;
     justify-content: space-evenly;
     margin: 35px auto;
-
+    
     .btn-confirm,
     .btn-cancel {
       width: 50px;
@@ -161,7 +175,7 @@ const addActivityCancel = () => {
       cursor: pointer;
     }
   }
-
+  
   .time {
     display: flex;
     margin-bottom: 10px;

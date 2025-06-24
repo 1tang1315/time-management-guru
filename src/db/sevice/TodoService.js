@@ -24,6 +24,30 @@ export class TodoService extends BaseService {
     return list.filter(item => item.collectionId === undefined);
   }
   
+  async getTodoList() {
+    const list = await super.getList();
+    
+    return list.filter(item =>
+      item.collectionId === undefined
+      && item.completed === false
+      && !item.isHabit);
+  }
+  
+  async getTodoHabitList() {
+    const list = await super.getList();
+    
+    return list.filter(item => item.isHabit === true);
+  }
+  
+  async getTodoCompletedList() {
+    const list = await super.getList();
+    
+    return list.filter(item =>
+      item.completed === true
+      && !item.isHabit
+    );
+  }
+  
   async getTodoActivity(todoId) {
     const activityService = new ActivityService();
     

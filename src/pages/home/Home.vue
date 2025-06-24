@@ -69,12 +69,21 @@
         :data="habitData"
         border
         fix
+        v-if="habitData.length > 0"
       >
         <el-table-column
           prop="name"
           label="名称"
           align="center"
-        />
+          class="habit-header"
+        >
+          <template #header>
+            <div class="habit-header-first">
+              <span class="habit-header-first-top_right">4月</span>
+              <span class="habit-header-first-bottom_left">名称</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column
           v-for="(_, index) in Array.from({ length: daysInMonth })"
           :prop="String(index + 1)"
@@ -389,14 +398,18 @@ const fetchAndGroupHabitData = async (date) => {
   const monthStr = moment(date).format('YYYY-MM');
   
   // 按月份获取习惯打卡数据
-  const habitActivityList = await habitActivityController.getHabitActivityByClockInTime(monthStr);
+  let habitActivityList = await habitActivityController.getHabitActivityListByClockInDay(monthStr);
   
-  const groupedData = {};
+  // 过滤掉未到达日期的数据
+  habitActivityList = habitActivityList?.filter(
+    item => item.clockInDay <= moment().format("YYYY-MM-DD")
+  );
   
   // 获取该月的实际天数
   daysInMonth.value = moment(date).daysInMonth();
   
   // 按 todoId 分组处理数据
+  const groupedData = {};
   habitActivityList?.forEach(item => {
     if(!groupedData[item.todoId]) {
       groupedData[item.todoId] = {
@@ -406,9 +419,9 @@ const fetchAndGroupHabitData = async (date) => {
       };
     }
     
-    if(item.clockInTime) {
-      const day = new Date(item.clockInTime).getDate();
-      groupedData[item.todoId][day] = item.status === '成功' ? '✅' : '❌';
+    if(item.clockInDay) {
+      const day = new Date(item.clockInDay).getDate();
+      groupedData[item.todoId][day] = item.status === true ? '✅' : '❌';
     }
   });
   
@@ -649,6 +662,38 @@ watch(
   border-radius: 10px;
   background-color: var(--background-color);
   overflow: hidden;
+  
+  &-header {
+    &-first {
+      position:relative;
+      margin:50px auto;
+      width:100px;
+      height:100px;
+      box-sizing:border-box;
+      border:1px solid #333;
+      line-height:120px;
+      text-indent:5px;
+      background:
+        linear-gradient(45deg, transparent 49.5%, deeppink 49.5%, deeppink 50.5%, transparent 50.5%);
+      
+      &-top_right,
+      &-bottom_left {
+        position: absolute;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      
+      &-top_right {
+        top: 2px;
+        left: 4px;
+      }
+      
+      &-bottom_left {
+        bottom: 2px;
+        right: 4px;
+      }
+    }
+  }
 }
 
 .chart {
